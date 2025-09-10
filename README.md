@@ -26,17 +26,17 @@ en la raiz del proyecto:
    npm run dev
 ```
 
-Para probar la base de datos, en la carpeta Test hay un archivo http el cual pueden ejecutar para probar
-los endopoints y la base.
+### Visualizar base de datos
 
-NOTA: Agregar extensión "rest client" en el visual
+Para visualizar la base de datos pueden entrar a [PgAdmin](http://localhost:8080/) y agregar el servidor.
 
-###Visualizar base de datos
-Para visualizar la base de datos pueden entrar a http://localhost:8080/ y agregar el servidor
+**Campos para añadir el servidor:**
 
-Campos para añadir servidor:
--host: db
--port: 5432
--maintenance database: proyecto-agil
--username: nestuser
--pass: 12345
+- **Host:** `db`
+- **Port:** `5432`
+- **Maintenance database:** `proyecto-agil`
+- **Username:** `nestuser`
+- **Password:** `12345`
+
+Nota: Para probar la base de datos, en la carpeta Test hay un archivo http el cual pueden ejecutar para probar
+los endopoints y la base. (agregar extensión 'rest client' en vscode)
