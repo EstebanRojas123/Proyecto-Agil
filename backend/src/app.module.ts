@@ -6,6 +6,7 @@ import databaseConfig from './config/database.config';
 import { validationSchema } from './config/validation.schema';
 
 import { DoggyModule } from './doggy/doggy.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { DoggyModule } from './doggy/doggy.module';
       }),
     }),
     DoggyModule,
+    AuthModule,
   ],
 })
 export class AppModule {}
