@@ -1,0 +1,12 @@
+
+weaitas pal .env
+
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=nestuser
+DB_PASSWORD=12345
+DB_NAME=proyecto-agil
+
+
+JWT_SECRET=top_secret_123
+JWT_EXPIRES_IN=2m
