@@ -28,7 +28,9 @@ export default function HomePanel() {
           </p>
           <p>
             <strong>Carreras:</strong>{" "}
-            {user.carreras.map((c) => c.nombre).join(", ")}
+            {user.carreras
+              .map((c) => c.nombre + " " + c.codigo + " " + c.catalogo)
+              .join(", ")}
           </p>
           <p>
             <strong>Token:</strong> {localStorage.getItem("token")}

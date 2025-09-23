@@ -7,6 +7,7 @@ import { validationSchema } from './config/validation.schema';
 
 import { DoggyModule } from './doggy/doggy.module';
 import { AuthModule } from './auth/auth.module';
+import { AvanceModule } from './avance/avance.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { AuthModule } from './auth/auth.module';
     }),
     DoggyModule,
     AuthModule,
+    AvanceModule,
   ],
 })
 export class AppModule {}

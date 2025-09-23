@@ -1,0 +1,2 @@
+###Obtener avanceee
+GET http://localhost:3000/avance?rut=111111111&codCarrera=8606&catalogo=202320
