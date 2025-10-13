@@ -1,10 +1,11 @@
+# Docker Compose para desarrollo con hot-reload optimizado
 version: "3.9"
 
 services:
   # Base de datos PostgreSQL
   db:
     image: postgres:15
-    container_name: postgres_db
+    container_name: postgres_db_dev
     restart: always
     environment:
       POSTGRES_USER: nestuser
@@ -13,14 +14,14 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data_dev:/var/lib/postgresql/data
     networks:
       - app-network
 
   # PgAdmin para gestión de base de datos
   pgadmin:
     image: dpage/pgadmin4
-    container_name: pgadmin
+    container_name: pgadmin_dev
     restart: always
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
@@ -32,12 +33,12 @@ services:
     networks:
       - app-network
 
-  # Backend NestJS
+  # Backend NestJS con desarrollo optimizado
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
-    container_name: backend_app
+      dockerfile: Dockerfile.dev
+    container_name: backend_app_dev
     restart: always
     environment:
       - NODE_ENV=development
@@ -54,15 +55,17 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
+      - /app/dist
     networks:
       - app-network
+    command: npm run start:dev
 
-  # Frontend Next.js
+  # Frontend Next.js con desarrollo optimizado
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
-    container_name: frontend_app
+      dockerfile: Dockerfile.dev
+    container_name: frontend_app_dev
     restart: always
     environment:
       - NODE_ENV=development
@@ -77,9 +80,10 @@ services:
       - /app/.next
     networks:
       - app-network
+    command: npm run dev
 
 volumes:
-  db_data:
+  db_data_dev:
 
 networks:
   app-network:
