@@ -58,7 +58,7 @@ services:
       - /app/dist
     networks:
       - app-network
-    command: npm run start:dev
+    command: npx ts-node src/main.ts
 
   # Frontend Next.js con desarrollo optimizado
   frontend:
