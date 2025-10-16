@@ -18,6 +18,14 @@ export default function HomePanel() {
     <div className="flex h-screen">
       {/* Aside lateral izquierdo */}
       <aside className="w-64 bg-blue-900 text-white flex flex-col justify-between p-6">
+        <div className="flex justify-center mb-6">
+          <img
+              src="/logo_ucn.png"
+            alt="Logo del sistema"
+            className="w-24 h-auto"
+          />
+        </div>
+
         <div>
           <h2 className="text-lg font-bold mb-6">Menú</h2>
           <nav className="space-y-4">
@@ -35,9 +43,9 @@ export default function HomePanel() {
 
         <button
           onClick={logout}
-          className="bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600 transition"
+          className="bg-[#FDA74A] text-white px-4 py-2 rounded-xl hover:bg-[#e69141] transition"
         >
-          Salir →
+          Salir →[ ]
         </button>
       </aside>
 

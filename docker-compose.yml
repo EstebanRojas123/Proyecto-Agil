@@ -1,6 +1,4 @@
 # Docker Compose para desarrollo con hot-reload optimizado
-version: "3.9"
-
 services:
   # Base de datos PostgreSQL
   db:
@@ -16,9 +14,9 @@ services:
     volumes:
       - db_data_dev:/var/lib/postgresql/data
     networks:
-      - app-network
+      app-network: {}
 
-  # PgAdmin para gestión de base de datos
+  # PgAdmin para gestionar la base de datos
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin_dev
@@ -31,9 +29,9 @@ services:
     depends_on:
       - db
     networks:
-      - app-network
+      app-network: {}
 
-  # Backend NestJS con desarrollo optimizado
+  # Backend NestJS con hot reload
   backend:
     build:
       context: ./backend
@@ -56,10 +54,10 @@ services:
       - ./backend:/app
       - /app/node_modules
     networks:
-      - app-network
-    command: npx ts-node src/main.ts
+      app-network: {}
+    command: npm run start:dev  
 
-  # Frontend Next.js con desarrollo optimizado
+  # Frontend Next.js con hot reload (webpack + polling)
   frontend:
     build:
       context: ./frontend
@@ -69,6 +67,9 @@ services:
     environment:
       - NODE_ENV=development
       - NEXT_PUBLIC_API_URL=http://localhost:3000
+      - WATCHPACK_POLLING=true
+      - WATCHPACK_POLLING_INTERVAL=1000
+      - CHOKIDAR_USEPOLLING=true
     ports:
       - "3001:3001"
     depends_on:
@@ -76,9 +77,8 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
-      - /app/.next
     networks:
-      - app-network
+      app-network: {}
     command: npm run dev
 
 volumes:
