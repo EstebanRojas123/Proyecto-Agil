@@ -1,2 +1,4 @@
-###Obtener avanceee
-GET http://localhost:3000/avance?rut=111111111&codCarrera=8606&catalogo=202320
+### Obtener historial curricular del estudiante | rut, carrera, catalogo
+GET http://localhost:3000/projection?rut=111111111&codcarrera=8606&catalogo=202320
+Accept: application/json
+

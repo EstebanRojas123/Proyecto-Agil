@@ -8,6 +8,8 @@ import { validationSchema } from './config/validation.schema';
 import { DoggyModule } from './doggy/doggy.module';
 import { AuthModule } from './auth/auth.module';
 import { AvanceModule } from './avance/avance.module';
+import { ExternalApiModule } from './external/external-api.module';
+import { ProjectionModule } from './projection/projection.module';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { AvanceModule } from './avance/avance.module';
     DoggyModule,
     AuthModule,
     AvanceModule,
+    ExternalApiModule,
+    ProjectionModule,
   ],
 })
 export class AppModule {}
