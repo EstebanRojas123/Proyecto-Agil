@@ -6,8 +6,7 @@ Esta configuración permite trabajar en el proyecto sin instalar Node.js, NestJS
 
 ### Prerrequisitos
 
-- [Docker](https://www.docker.com/get-started) instalado
-- [Docker Compose](https://docs.docker.com/compose/install/) instalado
+- Tener [Docker](https://www.docker.com/get-started) instalado
 
 ### Inicio rápido con Docker
 
@@ -19,7 +18,8 @@ cd Proyecto-Agil
 
 2. **Levantar todos los servicios:**
 ```bash
-docker-compose up -d
+docker compose up -d
+
 ```
 
 3. **Verificar que todo esté funcionando:**
