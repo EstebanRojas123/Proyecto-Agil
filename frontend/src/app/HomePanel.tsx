@@ -15,35 +15,39 @@ export default function HomePanel() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-r from-purple-400 via-pink-400 to-red-400">
-      <div className="bg-black p-8 rounded-2xl shadow-xl w-80 text-center">
-        <h1 className="text-2xl font-bold mb-4">Bienvenido 🎉</h1>
-        <p className="mb-6 text-black-800 font-semibold">
-          Este es tu panel de usuario. Aquí puedes ver tu información:
-        </p>
-
-        <div className="bg-gray-200 p-4 rounded-lg mb-6 text-left font-mono text-sm break-all text-black">
-          <p>
-            <strong>RUT:</strong> {user.rut}
-          </p>
-          <p>
-            <strong>Carreras:</strong>{" "}
-            {user.carreras
-              .map((c) => c.nombre + " " + c.codigo + " " + c.catalogo)
-              .join(", ")}
-          </p>
-          <p>
-            <strong>Token:</strong> {localStorage.getItem("token")}
-          </p>
+    <div className="flex h-screen">
+      {/* Aside lateral izquierdo */}
+      <aside className="w-64 bg-blue-900 text-white flex flex-col justify-between p-6">
+        <div>
+          <h2 className="text-lg font-bold mb-6">Menú</h2>
+          <nav className="space-y-4">
+            <a href="#" className="block hover:text-gray-300">
+              Malla Curricular
+            </a>
+            <a href="#" className="block hover:text-gray-300">
+              Mi Trayectoria
+            </a>
+            <a href="#" className="block hover:text-gray-300">
+              Mis Proyecciones
+            </a>
+          </nav>
         </div>
 
         <button
           onClick={logout}
-          className="bg-red-500 text-white px-6 py-2 rounded-xl hover:bg-red-600 transition"
+          className="bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600 transition"
         >
-          Cerrar sesión
+          Salir →
         </button>
-      </div>
+      </aside>
+
+      {/* Contenido principal */}
+      <main className="flex-1 bg-gray-100 flex flex-col items-center justify-center">
+        <h1 className="text-3xl font-bold text-gray-800">
+          Malla Curricular
+        </h1>
+      </main>
     </div>
   );
 }
+
