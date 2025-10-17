@@ -1,18 +1,16 @@
 export interface Curso {
-  nrc: string;
-  period: string;
-  student: string;
   course: string;
-  excluded: boolean;
-  inscriptionType: string;
+  nombre: string;
   status: 'APROBADO' | 'REPROBADO' | 'INSCRITO';
+  period: string;
+  nrc: string;
 }
 
 export interface AvanceResponse extends Array<Curso> {}
 
-export async function getAvanceData(rut: string, codigoCarrera: string): Promise<AvanceResponse> {
+export async function getAvanceData(rut: string, codigoCarrera: string, catalogo: string): Promise<AvanceResponse> {
   const response = await fetch(
-    `https://puclaro.ucn.cl/eross/avance/avance.php?rut=${rut}&codcarrera=${codigoCarrera}`
+    `http://localhost:3000/avance?rut=${rut}&codCarrera=${codigoCarrera}&catalogo=${catalogo}`
   );
 
   if (!response.ok) {

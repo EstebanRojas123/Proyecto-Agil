@@ -30,7 +30,7 @@ export default function HistorialCurricular() {
         setError(null);
 
         // Obtener datos de avance para la carrera seleccionada
-        const data = await getAvanceData(user.rut, selectedCareer.codigo);
+        const data = await getAvanceData(user.rut, selectedCareer.codigo, selectedCareer.catalogo);
         setAvanceData(data);
       } catch (err) {
         setError("Error al cargar el historial curricular");
@@ -221,11 +221,11 @@ export default function HistorialCurricular() {
               <div className={styles.cursosContainer}>
                 {cursosGrouped[semestre].map((curso, index) => (
                   <div key={index} className={styles.cursoCard}>
-                    <div className={styles.cursoInfo}>
-                      <div className={styles.cursoCodigo}>{curso.course}</div>
-                      <div className={styles.cursoNombre}>{curso.course}</div>
-                      <div className={styles.cursoCreditos}>NRC: {curso.nrc}</div>
-                    </div>
+                        <div className={styles.cursoInfo}>
+                          <div className={styles.cursoCodigo}>{curso.course}</div>
+                          <div className={styles.cursoNombre}>{curso.nombre}</div>
+                          <div className={styles.cursoCreditos}>NRC: {curso.nrc}</div>
+                        </div>
                     <div className={`${styles.cursoEstado} ${getEstadoClass(curso.status)}`}>
                       {getEstadoIcon(curso.status)}
                     </div>
