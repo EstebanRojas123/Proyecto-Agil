@@ -73,11 +73,28 @@
 
 .navLink {
   display: block;
-  transition: color 0.2s;
+  transition: all 0.2s;
+  background: none;
+  border: none;
+  color: white;
+  text-align: left;
+  width: 100%;
+  padding: 0.5rem 0;
+  cursor: pointer;
+  font-size: inherit;
 }
 
 .navLink:hover {
   color: #d1d5db; /* hover:text-gray-300 */
+}
+
+.navLinkActive {
+  color: #10b981; /* text-green-500 */
+  font-weight: bold;
+  border-left: 3px solid #10b981;
+  padding-left: 0.5rem;
+  background-color: rgba(16, 185, 129, 0.1);
+  border-radius: 0.25rem;
 }
 
 .logoutButton {

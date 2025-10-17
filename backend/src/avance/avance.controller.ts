@@ -13,4 +13,12 @@ export class AvanceController {
   ) {
     return this.avanceService.getAvanceConNombre(rut, codCarrera, catalogo);
   }
+
+  @Get('malla')
+  async getMalla(
+    @Query('codCarrera') codCarrera: string,
+    @Query('catalogo') catalogo: string,
+  ) {
+    return this.avanceService.getMalla(codCarrera, catalogo);
+  }
 }

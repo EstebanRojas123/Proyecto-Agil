@@ -8,6 +8,16 @@ export interface Curso {
 
 export interface AvanceResponse extends Array<Curso> {}
 
+export interface MallaItem {
+  codigo: string;
+  asignatura: string;
+  creditos: number;
+  nivel: number;
+  prereq?: string;
+}
+
+export interface MallaResponse extends Array<MallaItem> {}
+
 export async function getAvanceData(rut: string, codigoCarrera: string, catalogo: string): Promise<AvanceResponse> {
   const response = await fetch(
     `http://localhost:3000/avance?rut=${rut}&codCarrera=${codigoCarrera}&catalogo=${catalogo}`
@@ -15,6 +25,18 @@ export async function getAvanceData(rut: string, codigoCarrera: string, catalogo
 
   if (!response.ok) {
     throw new Error('Error al obtener datos de avance');
+  }
+
+  return response.json();
+}
+
+export async function getMallaData(codigoCarrera: string, catalogo: string): Promise<MallaResponse> {
+  const response = await fetch(
+    `http://localhost:3000/avance/malla?codCarrera=${codigoCarrera}&catalogo=${catalogo}`
+  );
+
+  if (!response.ok) {
+    throw new Error('Error al obtener datos de malla curricular');
   }
 
   return response.json();
