@@ -27,7 +27,7 @@ export function findMostRecentCareer(carreras: { codigo: string; nombre: string;
     return null;
   }
 
-  // Encontrar la carrera con el año más reciente
+  // Carrera más reciente x el año
   const mostRecent = carreras.reduce((latest, current) => {
     const currentYear = parseInt(current.catalogo.substring(0, 4));
     const latestYear = parseInt(latest.catalogo.substring(0, 4));
@@ -35,7 +35,6 @@ export function findMostRecentCareer(carreras: { codigo: string; nombre: string;
     if (currentYear > latestYear) {
       return current;
     } else if (currentYear === latestYear) {
-      // Si el año es igual, comparar el semestre
       const currentSemester = parseInt(current.catalogo.substring(4, 6));
       const latestSemester = parseInt(latest.catalogo.substring(4, 6));
       
