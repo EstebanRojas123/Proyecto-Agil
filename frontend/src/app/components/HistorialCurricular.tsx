@@ -48,7 +48,7 @@ export default function HistorialCurricular() {
     setSelectedCareer(career);
   };
 
-  const getEstadoIcon = (estado: string) => {
+  /*const getEstadoIcon = (estado: string) => {
     switch (estado) {
       case 'APROBADO':
         return '✅';
@@ -59,7 +59,7 @@ export default function HistorialCurricular() {
       default:
         return '❓';
     }
-  };
+  };*/
 
   const getEstadoClass = (estado: string) => {
     switch (estado) {
@@ -197,9 +197,7 @@ export default function HistorialCurricular() {
                           <div className={styles.cursoNombre}>{curso.nombre}</div>
                           <div className={styles.cursoCreditos}>NRC: {curso.nrc}</div>
                         </div>
-                    <div className={`${styles.cursoEstado} ${getEstadoClass(curso.status)}`}>
-                      {getEstadoIcon(curso.status)}
-                    </div>
+                    <div className={`${styles.cursoEstado} ${getEstadoClass(curso.status)}`}> </div>
                   </div>
                 ))}
               </div>
