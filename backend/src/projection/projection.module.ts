@@ -3,10 +3,12 @@ import { Module } from '@nestjs/common';
 import { ProjectionController } from './projection.controller';
 import { ProjectionService } from './projection.service';
 import { ExternalApiModule } from '../external/external-api.module';
+import { AutomaticProjectionService } from './automatic-projection.service';
 
 @Module({
   imports: [ExternalApiModule],
   controllers: [ProjectionController],
-  providers: [ProjectionService],
+  providers: [ProjectionService, AutomaticProjectionService],
+  exports: [ProjectionService, AutomaticProjectionService],
 })
 export class ProjectionModule {}

@@ -18,7 +18,6 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
 
-    // Datos del usuario que devuelve la API
     const payload = {
       rut: data.rut,
       carreras: data.carreras,

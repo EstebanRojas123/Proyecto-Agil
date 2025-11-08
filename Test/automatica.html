@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Historial por Semestre + Proyección (Imprimible)</title>
+
+    <style>
+      :root {
+        --ok: #0a7f2e; /* aprobado */
+        --warn: #b45309; /* inscrito */
+        --bad: #b91c1c; /* reprobado */
+        --proj: #1d4ed8; /* proyectado */
+        --ink: #0f172a; /* texto principal */
+        --muted: #475569; /* texto secundario */
+        --card: #ffffff;
+        --bg: #f8fafc;
+        --line: #e2e8f0;
+      }
+
+      html,
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu,
+          Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji",
+          "Segoe UI Emoji", "Segoe UI Symbol";
+      }
+      .container {
+        max-width: 980px;
+        margin: 24px auto;
+        padding: 0 16px;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+      header h1 {
+        font-size: 22px;
+        margin: 0;
+      }
+      .meta {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 8px 0 20px;
+      }
+      .btn {
+        border: 1px solid var(--line);
+        background: #fff;
+        padding: 8px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .btn:hover {
+        background: #f1f5f9;
+      }
+
+      .resumen {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin: 18px 0 22px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px 16px;
+      }
+      .kpi {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .kpi strong {
+        display: block;
+        font-size: 20px;
+        color: var(--ink);
+      }
+
+      .section-title {
+        margin: 28px 0 10px;
+        font-size: 18px;
+      }
+      .group-note {
+        color: var(--muted);
+        font-size: 13px;
+        margin: 0 0 14px;
+      }
+
+      .semestre {
+        break-inside: avoid; /* evita cortes feos al imprimir */
+        margin: 12px 0 18px;
+        border-left: 4px solid var(--ink);
+        border-radius: 8px;
+        background: #fff;
+        border: 1px solid var(--line);
+      }
+      .semestre header {
+        padding: 10px 14px;
+        margin: 0;
+        border-bottom: 1px solid var(--line);
+        background: #f8fafc;
+        border-radius: 8px 8px 0 0;
+      }
+      .semestre h2 {
+        font-size: 16px;
+        margin: 0;
+      }
+      .ramo-list {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+      .ramo {
+        display: grid;
+        grid-template-columns: minmax(120px, 160px) 1fr auto;
+        gap: 10px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--line);
+      }
+      .ramo:last-child {
+        border-bottom: 0;
+      }
+      .codigo {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .nombre {
+        font-weight: 600;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid currentColor;
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .estado-aprobado {
+        color: var(--ok);
+      }
+      .estado-reprobado {
+        color: var(--bad);
+      }
+      .estado-inscrito {
+        color: var(--warn);
+      }
+      .estado-proyectado {
+        color: var(--proj);
+      }
+
+      .attrs {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .attrs .chip {
+        border: 1px dashed var(--line);
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+
+      .legend {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        font-size: 12px;
+        color: var(--muted);
+        margin: 6px 0 20px;
+      }
+      .legend .pill {
+        border-style: dashed;
+      }
+
+      /* Impresión */
+      @media print {
+        .toolbar {
+          display: none !important;
+        }
+        header,
+        .meta {
+          margin: 0 0 8px;
+        }
+        body {
+          background: #fff;
+        }
+        .container {
+          margin: 0;
+          max-width: none;
+          padding: 0;
+        }
+        .semestre {
+          page-break-inside: avoid;
+        }
+        @page {
+          size: A4 portrait;
+          margin: 12mm;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div>
+          <h1>Historial por Semestre + Proyección</h1>
+          <div class="meta" id="metaInfo">Cargando…</div>
+        </div>
+        <div class="toolbar">
+          <button class="btn" onclick="window.print()">🖨️ Imprimir</button>
+          <button class="btn" id="reloadBtn">↻ Recargar</button>
+        </div>
+      </header>
+
+      <div class="resumen" id="resumen" aria-live="polite"></div>
+
+      <div class="legend">
+        <span class="pill estado-aprobado">APROBADO</span>
+        <span class="pill estado-reprobado">REPROBADO</span>
+        <span class="pill estado-inscrito">INSCRITO</span>
+        <span class="pill estado-proyectado">PROYECTADO</span>
+      </div>
+
+      <h2 class="section-title">1) Cursados / Cursando</h2>
+      <p class="group-note">
+        Ordenado por semestre; incluye <strong>APROBADO</strong>,
+        <strong>REPROBADO</strong> e <strong>INSCRITO</strong>. Se omiten
+        <em>PENDIENTES</em>.
+      </p>
+      <div id="historial"></div>
+
+      <h2 class="section-title">2) Proyectados</h2>
+      <p class="group-note">
+        Semestres siguientes proyectados automáticamente, también ordenados.
+      </p>
+      <div id="proyeccion"></div>
+    </div>
+
+    <script>
+      // ====== Config rápida (ajusta parámetros según necesites) ======
+      const params = new URLSearchParams({
+        rut: "333333333",
+        codcarrera: "8266",
+        catalogo: "202410",
+      });
+
+      const API_HIST = `http://localhost:3000/projection?${params.toString()}`;
+      const API_PROJ = `http://localhost:3000/projection/automatic-projection?${params.toString()}`;
+
+      // Estados a considerar en "cursados/cursando"
+      const ESTADOS_HIST = new Set(["APROBADO", "REPROBADO", "INSCRITO"]);
+
+      // ====== Utilidades ======
+      function parsePeriodo(p) {
+        // p.ej. "2024-15", "2024-1", "2023-2"
+        // Devuelve {year, termOrder} para ordenar correctamente 1 < 2 < 15
+        const [y, t] = String(p).split("-");
+        const year = Number(y);
+        const termMap = { 1: 1, 2: 2, 15: 3 }; // inviernal/verano como 3
+        const term = termMap[t] ?? Number(t) ?? 99;
+        return { year, term };
+      }
+      function comparePeriodo(a, b) {
+        const A = parsePeriodo(a);
+        const B = parsePeriodo(b);
+        if (A.year !== B.year) return A.year - B.year;
+        return A.term - B.term;
+      }
+
+      function estadoClass(estado) {
+        const e = (estado || "").toUpperCase();
+        if (e === "APROBADO") return "estado-aprobado";
+        if (e === "REPROBADO") return "estado-reprobado";
+        if (e === "INSCRITO") return "estado-inscrito";
+        return "estado-proyectado";
+      }
+
+      function createResumen(res) {
+        if (!res) return "";
+        const { creditosTotales, creditosAprobados, porcentaje } = res;
+        return `
+      <div class="card kpi"><span>Créditos totales</span><strong>${
+        creditosTotales ?? "-"
+      }</strong></div>
+      <div class="card kpi"><span>Créditos aprobados</span><strong>${
+        creditosAprobados ?? "-"
+      }</strong></div>
+      <div class="card kpi"><span>Progreso</span><strong>${
+        porcentaje != null ? porcentaje + "%" : "-"
+      }</strong></div>
+    `;
+      }
+
+      function ramoRow(r) {
+        const pre =
+          r.prerequisitos && r.prerequisitos.length
+            ? `<span class="chip">Pre: ${r.prerequisitos.join(", ")}</span>`
+            : "";
+        return `
+      <div class="ramo">
+        <div class="codigo">${r.codigo}</div>
+        <div>
+          <div class="nombre">${r.nombre}</div>
+          <div class="attrs">
+            <span class="chip">Créditos: ${r.creditos}</span>
+            <span class="chip">Nivel: ${r.nivel}</span>
+            ${pre}
+          </div>
+        </div>
+        <div><span class="pill ${estadoClass(r.estado)}">${
+          r.estado
+        }</span></div>
+      </div>
+    `;
+      }
+
+      function semestreBlock(periodo, ramos) {
+        return `
+      <section class="semestre">
+        <header><h2>${periodo}</h2></header>
+        <div class="ramo-list">
+          ${ramos.map(ramoRow).join("")}
+        </div>
+      </section>
+    `;
+      }
+
+      function groupByPeriodo(semestresArray, filtroEstados = null) {
+        // semestresArray: [{periodo, ramos:[...]}]
+        // filtroEstados: Set o null
+        const acc = new Map();
+        for (const sem of semestresArray || []) {
+          let rams = sem.ramos || [];
+          if (filtroEstados) {
+            rams = rams.filter((r) =>
+              filtroEstados.has((r.estado || "").toUpperCase())
+            );
+          }
+          if (!rams.length) continue;
+          if (!acc.has(sem.periodo)) acc.set(sem.periodo, []);
+          acc.get(sem.periodo).push(...rams);
+        }
+        // Ordenar por periodo
+        const sorted = Array.from(acc.keys()).sort(comparePeriodo);
+        return sorted.map((p) => ({ periodo: p, ramos: acc.get(p) }));
+      }
+
+      async function loadData() {
+        const meta = document.getElementById("metaInfo");
+        const resumen = document.getElementById("resumen");
+        const contHist = document.getElementById("historial");
+        const contProj = document.getElementById("proyeccion");
+
+        meta.textContent = "Consultando API…";
+
+        let hist, proj;
+        try {
+          const [a, b] = await Promise.all([
+            fetch(API_HIST, { headers: { Accept: "application/json" } }),
+            fetch(API_PROJ, { headers: { Accept: "application/json" } }),
+          ]);
+          if (!a.ok) throw new Error(`Historial ${a.status}`);
+          if (!b.ok) throw new Error(`Proyección ${b.status}`);
+          hist = await a.json();
+          proj = await b.json();
+        } catch (err) {
+          meta.textContent = "Error al cargar datos: " + err.message;
+          return;
+        }
+
+        // Resumen (si viene en cualquiera, prioriza historial)
+        const res = hist?.resumen || proj?.resumen || null;
+        resumen.innerHTML = createResumen(res);
+
+        // 1) Cursados/Cursando (filtra pendientes)
+        const histSem = groupByPeriodo(hist?.semestres || [], ESTADOS_HIST);
+        contHist.innerHTML =
+          histSem.map((s) => semestreBlock(s.periodo, s.ramos)).join("") ||
+          '<p class="meta">Sin datos.</p>';
+
+        // 2) Proyección (todo viene como PROYECTADO)
+        const projSem = groupByPeriodo(proj?.semestres || [], null);
+        contProj.innerHTML =
+          projSem.map((s) => semestreBlock(s.periodo, s.ramos)).join("") ||
+          '<p class="meta">Sin proyección disponible.</p>';
+
+        // Meta
+        const now = new Date();
+        meta.textContent = `Fuente: ${API_HIST} y ${API_PROJ} — Generado el ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+      }
+
+      document.getElementById("reloadBtn").addEventListener("click", loadData);
+      loadData();
+    </script>
+  </body>
+</html>

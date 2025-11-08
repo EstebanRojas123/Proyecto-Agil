@@ -1,0 +1,13 @@
+### Crear un Doggy
+POST http://localhost:3000/doggy
+Content-Type: application/json
+
+{
+  "name": "Firulais"
+}
+
+### Obtener los doggies sisis
+GET http://localhost:3000/doggy
+
+
+

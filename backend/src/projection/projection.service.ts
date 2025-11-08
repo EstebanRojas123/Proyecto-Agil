@@ -10,9 +10,13 @@ import {
 } from './types';
 
 function parsePeriodoLabel(period: string): string {
-  const year = period.slice(0, 4);
-  const code = period.slice(4);
+  const year = period.slice(0, 4); // saca los primeros 4 caracteres (el año)
+  const code = period.slice(4); // saca lo que queda (el código del semestre)
+
+  // Si es "10" lo interpretamos como primer semestre, si es "20" como segundo semestre
   const term = code === '10' ? '1' : code === '20' ? '2' : code;
+
+  // Template literal correcto
   return `${year}-${term}`;
 }
 
@@ -44,10 +48,10 @@ export class ProjectionService {
 
     const periodoMap = new Map<string, ProyeccionRamo[]>();
 
+    // === Ramos cursados o inscritos ===
     for (const a of avance) {
       const periodo = parsePeriodoLabel(a.period);
       const def = mallaByCode.get(a.course);
-
       if (!def) continue;
 
       const entry: ProyeccionRamo = {
@@ -56,13 +60,19 @@ export class ProjectionService {
         estado: a.status,
         creditos: def.creditos,
         nivel: def.nivel,
+        prerequisitos: def.prereq
+          ? def.prereq.split(',').map((p) => p.trim())
+          : [], // ✅ Agregamos los prerequisitos
       };
+
       if (!periodoMap.has(periodo)) periodoMap.set(periodo, []);
       periodoMap.get(periodo)!.push(entry);
     }
 
+    // === Ramos pendientes ===
     const cursadosSet = new Set(avance.map((a) => a.course));
     const pendientesPorNivel = new Map<number, ProyeccionRamo[]>();
+
     for (const def of malla) {
       if (!cursadosSet.has(def.codigo)) {
         const p: ProyeccionRamo = {
@@ -71,13 +81,18 @@ export class ProjectionService {
           estado: 'PENDIENTE',
           creditos: def.creditos,
           nivel: def.nivel,
+          prerequisitos: def.prereq
+            ? def.prereq.split(',').map((p) => p.trim())
+            : [], // ✅ También en pendientes
         };
+
         if (!pendientesPorNivel.has(def.nivel))
           pendientesPorNivel.set(def.nivel, []);
         pendientesPorNivel.get(def.nivel)!.push(p);
       }
     }
 
+    // === Ordenar los ramos dentro de cada semestre ===
     for (const [periodo, ramos] of periodoMap) {
       ramos.sort(
         (a, b) => a.nivel - b.nivel || a.nombre.localeCompare(b.nombre),
@@ -85,6 +100,7 @@ export class ProjectionService {
       periodoMap.set(periodo, ramos);
     }
 
+    // === Construir respuesta final ===
     const semestres: ProyeccionSemestre[] = Array.from(periodoMap.entries())
       .sort(([pa], [pb]) => sortPeriodoAsc(pa, pb))
       .map(([periodo, ramos]) => ({ periodo, ramos }));
@@ -104,7 +120,6 @@ export class ProjectionService {
 
 function computeProgress(malla: MallaItem[], avance: AvanceItem[]) {
   const mallaByCode = new Map(malla.map((m) => [m.codigo, m] as const));
-
   const creditosTotales = malla.reduce((acc, m) => acc + (m.creditos || 0), 0);
 
   const aprobadosUnicos = new Set<string>();

@@ -26,13 +26,14 @@ export interface AvanceItem {
 export interface ProyeccionRamo {
   codigo: string;
   nombre: string;
-  estado: 'APROBADO' | 'REPROBADO' | 'INSCRITO' | 'PENDIENTE';
+  estado: 'APROBADO' | 'REPROBADO' | 'INSCRITO' | 'PENDIENTE' | 'PROYECTADO';
   creditos: number;
   nivel: number;
+  prerequisitos?: string[];
 }
 
 export interface ProyeccionSemestre {
-  periodo: string; // "2023-1", "2023-2"
+  periodo: string; // "2023-1", "2023-2", "2023-15"
   ramos: ProyeccionRamo[];
 }
 
@@ -51,3 +52,46 @@ export interface ProyeccionResponse {
     ramos: ProyeccionRamo[];
   }[];
 }
+
+// =======================
+// 👇 Alias y tipos internos para el algoritmo automático
+// =======================
+
+// Alias para usar el mismo shape internamente
+export type Ramo = ProyeccionRamo;
+export type SemestrePlaneado = ProyeccionSemestre;
+
+// Parámetros de ambos endpoints
+export interface AlumnoParams {
+  rut: string;
+  codCarrera: string;
+  catalogo: string;
+}
+
+// Historial por semestre (estados reales del avance)
+export interface SemestreHistorial {
+  periodo: string; // "YYYY-1" | "YYYY-2" | "YYYY-15"
+  ramos: (ProyeccionRamo & { estado: AvanceEstado })[];
+}
+
+// Estructura completa que entrega el endpoint base /projection
+export interface RawProjectionResponse {
+  resumen: ProyeccionResumen;
+  semestres: SemestreHistorial[];
+  pendientes: {
+    nivel: number;
+    ramos: ProyeccionRamo[];
+  }[];
+}
+
+// Base normalizada para correr el algoritmo
+export interface NormalizedBase {
+  semestres: SemestreHistorial[];
+  aprobadosSet: Set<string>;
+  inscritosSet: Set<string>;
+  reprobadosSet: Set<string>;
+  nivelBase: number;
+}
+
+// Constante de negocio
+export const MAX_CREDITOS_POR_SEMESTRE = 30 as const;

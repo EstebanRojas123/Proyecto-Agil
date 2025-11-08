@@ -1,4 +1,7 @@
 ### Obtener historial curricular del estudiante | rut, carrera, catalogo
-GET http://localhost:3000/projection?rut=111111111&codcarrera=8606&catalogo=202320
+GET http://localhost:3000/projection?rut=333333333&codcarrera=8266&catalogo=202410
 Accept: application/json
 
+### Obtener proyección automática desde el siguiente semestre
+GET http://localhost:3000/projection/automatic-projection?rut=333333333&codcarrera=8266&catalogo=202410
+Accept: application/json

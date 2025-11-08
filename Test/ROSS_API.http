@@ -2,7 +2,7 @@
 GET https://puclaro.ucn.cl/eross/avance/login.php?email=juan@example.com&password=1234
 
 ### Avance de un estudiante
-GET https://puclaro.ucn.cl/eross/avance/avance.php?rut=111111111&codcarrera=8606
+GET https://puclaro.ucn.cl/eross/avance/avance.php?rut=333333333&codcarrera=8266
 
 
 ### Malla de una carrera
