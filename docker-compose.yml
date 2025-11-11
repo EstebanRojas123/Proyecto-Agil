@@ -71,17 +71,15 @@ services:
       - NODE_ENV=development
       - NEXT_PUBLIC_API_URL=http://localhost:3000
       - WATCHPACK_POLLING=true
-      - WATCHPACK_POLLING_INTERVAL=500
+      - WATCHPACK_POLLING_INTERVAL=1000
       - CHOKIDAR_USEPOLLING=true
-      - CHOKIDAR_INTERVAL=500
     ports:
       - "3001:3001"
     depends_on:
       - backend
     volumes:
-      - ./frontend:/app:cached
+      - ./frontend:/app
       - /app/node_modules
-      - /app/.next
     networks:
       - app-network
     command: npm run dev

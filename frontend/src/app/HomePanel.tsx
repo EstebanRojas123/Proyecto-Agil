@@ -1,9 +1,136 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import HistorialCurricular from "./components/HistorialCurricular";
-import MallaCurricular from "./components/MallaCurricular";
+import CareerSelector from "./components/CareerSelector";
+import { getMallaData, findMostRecentCareer, MallaItem } from "@/services/AvanceService";
 import styles from "./components/HomePanel.module.css";
+import mallaStyles from "./components/MallaCurricular.module.css";
+
+// Componente MallaCurricular
+function MallaCurricular() {
+  const { user } = useAuth();
+  const [mallaData, setMallaData] = useState<MallaItem[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedCareer, setSelectedCareer] = useState<{ codigo: string; nombre: string; catalogo: string } | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Inicializar con la carrera más reciente
+    const mostRecentCareer = findMostRecentCareer(user.carreras);
+    if (mostRecentCareer) {
+      setSelectedCareer(mostRecentCareer);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const fetchMallaData = async () => {
+      if (!user || !selectedCareer) return;
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Obtener datos de malla para la carrera seleccionada
+        const data = await getMallaData(selectedCareer.codigo, selectedCareer.catalogo);
+        setMallaData(data);
+      } catch (err) {
+        setError("Error al cargar la malla curricular");
+        console.error("Error fetching malla data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMallaData();
+  }, [user, selectedCareer]);
+
+  const handleCareerChange = (career: { codigo: string; nombre: string; catalogo: string } | null) => {
+    setSelectedCareer(career);
+  };
+
+  // Agrupación por niveles (semestres)
+  const mallaByLevel = mallaData ? mallaData.reduce((acc, item) => {
+    if (!acc[item.nivel]) {
+      acc[item.nivel] = [];
+    }
+    acc[item.nivel].push(item);
+    return acc;
+  }, {} as { [key: number]: MallaItem[] }) : {};
+
+  const levels = Object.keys(mallaByLevel).map(Number).sort((a, b) => a - b);
+
+  if (loading) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '1.7rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1rem' }}>
+          MALLA CURRICULAR
+        </h1>
+        <p style={{ color: '#6b7280' }}>Cargando malla curricular...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '1.7rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1rem' }}>
+          MALLA CURRICULAR
+        </h1>
+        <p style={{ color: '#ef4444' }}>{error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={mallaStyles.container}>
+      <h1 className={mallaStyles.title}>
+        MALLA CURRICULAR
+      </h1>
+      
+      <CareerSelector 
+        selectedCareer={selectedCareer}
+        onCareerChange={handleCareerChange}
+      />
+
+      {levels.length > 0 ? (
+        <div className={mallaStyles.levelsContainer}>
+          {levels.map((level) => (
+            <div key={level} className={mallaStyles.levelColumn}>
+              <div className={mallaStyles.levelHeader}>
+                Semestre {level}
+              </div>
+              
+              <div className={mallaStyles.coursesContainer}>
+                {mallaByLevel[level].map((item) => (
+                  <div key={item.codigo} className={mallaStyles.courseCard}>
+                    <div className={mallaStyles.courseInfo}>
+                      <div className={mallaStyles.courseCode}>
+                        {item.codigo}
+                      </div>
+                      <div className={mallaStyles.courseName}>
+                        {item.asignatura}
+                      </div>
+                      <div className={mallaStyles.courseCredits}>
+                        {item.creditos} SCT
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className={mallaStyles.noData}>
+          <p className={mallaStyles.noDataText}>No se encontraron datos de malla curricular</p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function MisProyecciones() {
   return (
@@ -11,7 +138,7 @@ function MisProyecciones() {
       <h1 style={{ fontSize: '1.7rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1rem' }}>
         MIS PROYECCIONES
       </h1>
-      <p style={{ color: '#6b7280' }}>Pronto estará disponiblee...</p>
+      <p style={{ color: '#6b7280' }}>Funcionalidad en desarrollo...</p>
     </div>
   );
 }
@@ -22,22 +149,18 @@ export default function HomePanel() {
   const { user, logout } = useAuth();
   const [activeSection, setActiveSection] = useState<MenuSection>('malla');
 
-  const extractNameFromEmail = (email: string | undefined): string => {
-    if (!email) return 'Usuario';
+  const formatRut = (rut: string) => {
+    // Remover cualquier guión existente y espacios
+    const cleanRut = rut.replace(/[-\s]/g, '');
     
-    // Obtener la parte antes del @
-    const beforeAt = email.split('@')[0];
+    // Separar el número del dígito verificador
+    const rutNumber = cleanRut.slice(0, -1);
+    const dv = cleanRut.slice(-1);
     
-    // Si hay un punto, separar en nombre y apellido
-    if (beforeAt.includes('.')) {
-      const parts = beforeAt.split('.');
-      const nombre = parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase();
-      const apellido = parts[1] ? parts[1].charAt(0).toUpperCase() + parts[1].slice(1).toLowerCase() : '';
-      return apellido ? `${nombre} ${apellido}` : nombre;
-    }
+    // Formatear con puntos y guión
+    const formattedNumber = rutNumber.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     
-    // Si no hay punto, capitalizar la primera letra
-    return beforeAt.charAt(0).toUpperCase() + beforeAt.slice(1).toLowerCase();
+    return `${formattedNumber}-${dv}`;
   };
 
   if (!user) {
@@ -64,7 +187,7 @@ export default function HomePanel() {
           </div>
 
           <div className={styles.welcomeMessage}>
-            ¡Bienvenido, {extractNameFromEmail(user.email)}!
+            ¡Bienvenido, {formatRut(user.rut)}!
           </div>
 
           <div className={styles.menuSection}>
@@ -81,7 +204,7 @@ export default function HomePanel() {
                   onClick={() => setActiveSection('historial')}
                   className={`${styles.navLink} ${activeSection === 'historial' ? styles.navLinkActive : ''}`}
                 >
-                  Trayectoria Curricular
+                  Historial Curricular
                 </button>
                 <button 
                   onClick={() => setActiveSection('proyecciones')}
@@ -113,3 +236,4 @@ export default function HomePanel() {
     </div>
   );
 }
+
