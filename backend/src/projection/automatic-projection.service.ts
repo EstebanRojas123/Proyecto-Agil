@@ -182,7 +182,7 @@ export class AutomaticProjectionService {
       // hubo progreso
       safety = 0;
 
-      // mover a aprobados “futuros”
+      // mover a aprobados "futuros"
       for (const r of tomadosEsteSemestre) {
         aprobadosSet.add(r.codigo);
         pendientesTotales.delete(r.codigo);
@@ -218,3 +218,4 @@ export class AutomaticProjectionService {
     };
   }
 }
+

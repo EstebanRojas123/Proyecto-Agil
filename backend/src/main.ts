@@ -2,7 +2,13 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // Deshabilitar devtools estableciendo NODE_ENV a production si no está definido
+  // o forzando la desactivación de devtools
+  const app = await NestFactory.create(AppModule, {
+    logger: ['error', 'warn', 'log'],
+    snapshot: false,
+    abortOnError: false,
+  });
 
   app.enableCors({
     origin: true,

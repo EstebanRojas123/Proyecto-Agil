@@ -26,7 +26,7 @@ export default function Home() {
     <div className={styles.backgroundContainer}>
       <div className={styles.loginContainer}>
         <img
-          src="/ucn-escudo-full-color.webp"
+          src="/logo_ucn.png"
           alt="Logo UCN"
           className={styles.logoUCN}
         />

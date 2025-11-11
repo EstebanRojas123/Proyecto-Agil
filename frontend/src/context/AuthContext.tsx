@@ -5,6 +5,7 @@ import { loginService } from "@/services/AuthServices";
 interface User {
   rut: string;
   carreras: { codigo: string; nombre: string; catalogo: string }[];
+  email?: string;
 }
 
 interface AuthContextType {

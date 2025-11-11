@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Nota: webpackDevMiddleware no aplica cuando se usa Turbopack
+  // El polling se configura mediante variables de entorno
 };
 
 export default nextConfig;

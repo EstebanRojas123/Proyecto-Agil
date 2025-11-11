@@ -42,6 +42,7 @@ services:
     restart: always
     environment:
       - NODE_ENV=development
+      - NESTJS_DEVTOOLS=false
       - DB_HOST=db
       - DB_PORT=5432
       - DB_USER=nestuser
@@ -57,7 +58,7 @@ services:
       - /app/node_modules
     networks:
       - app-network
-    command: npx ts-node src/main.ts
+    command: npm run start:dev
 
   # Frontend Next.js con desarrollo optimizado
   frontend:
@@ -69,12 +70,16 @@ services:
     environment:
       - NODE_ENV=development
       - NEXT_PUBLIC_API_URL=http://localhost:3000
+      - WATCHPACK_POLLING=true
+      - WATCHPACK_POLLING_INTERVAL=500
+      - CHOKIDAR_USEPOLLING=true
+      - CHOKIDAR_INTERVAL=500
     ports:
       - "3001:3001"
     depends_on:
       - backend
     volumes:
-      - ./frontend:/app
+      - ./frontend:/app:cached
       - /app/node_modules
       - /app/.next
     networks:

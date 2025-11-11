@@ -25,7 +25,10 @@ export class AuthService {
 
     return {
       access_token: this.jwtService.sign(payload),
-      user: payload,
+      user: {
+        ...payload,
+        email: email, // Agregar email al objeto user
+      },
     };
   }
 }

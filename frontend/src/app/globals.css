@@ -24,3 +24,34 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Ocultar botón de Next.js Dev Tools */
+/* El botón está dentro de un Shadow DOM, así que necesitamos ocultar el portal completo */
+script[data-nextjs-dev-overlay="true"],
+nextjs-portal,
+#devtools-indicator,
+div[id="devtools-indicator"],
+div[data-nextjs-toast="true"],
+button[id="next-logo"],
+button[data-nextjs-dev-tools-button="true"],
+button[aria-label="Open Next.js Dev Tools"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  left: -9999px !important;
+  width: 0 !important;
+  height: 0 !important;
+  z-index: -9999 !important;
+}
+
+/* Ocultar el portal de Next.js Dev Tools */
+script[data-nextjs-dev-overlay="true"] {
+  display: none !important;
+}
+
+/* También ocultar cualquier elemento con el indicador de devtools */
+div[id="devtools-indicator"] {
+  display: none !important;
+}

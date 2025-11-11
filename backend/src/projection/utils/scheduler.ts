@@ -176,7 +176,7 @@ function buildGraphs(base: NormalizedBase & RawProjectionResponse) {
 
 /**
  * Regla: sólo bloquean los prereqs que existen en malla (pendientesIndex) y no están aprobados.
- * Los prereqs “fantasma” se ignoran. No permitimos co-requisitos en el mismo semestre.
+ * Los prereqs "fantasma" se ignoran. No permitimos co-requisitos en el mismo semestre.
  */
 function canTake(
   ramo: Ramo,
@@ -238,3 +238,4 @@ export {
   canTake,
   computeUnlockScores,
 };
+

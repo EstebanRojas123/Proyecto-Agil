@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack -p 3001",
+    "dev": "WATCHPACK_POLLING=true WATCHPACK_POLLING_INTERVAL=500 CHOKIDAR_USEPOLLING=true CHOKIDAR_INTERVAL=500 next dev --turbopack -p 3001",
+    "dev:poll": "cross-env WATCHPACK_POLLING=true CHOKIDAR_USEPOLLING=true CHOKIDAR_INTERVAL=1000 next dev --turbopack -p 3001",
     "build": "next build --turbopack",
     "start": "next start -p 3001",
     "lint": "eslint"
