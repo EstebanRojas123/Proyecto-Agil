@@ -200,6 +200,12 @@ export default function HistorialCurricular() {
   
   const semestres = sortSemesters(Object.keys(cursosGrouped));
 
+  // Función para verificar si un semestre tiene cursos inscritos
+  const hasInscritos = (semestre: string): boolean => {
+    const cursos = cursosGrouped[semestre] || [];
+    return cursos.some(curso => curso.status === 'INSCRITO');
+  };
+
   return (
     <div className={styles.container}>
       <h1 className={styles.title}>TRAYECTORIA CURRICULAR</h1>
@@ -214,7 +220,10 @@ export default function HistorialCurricular() {
           {semestres.map(semestre => (
             <div key={semestre} className={styles.semestreColumn}>
               <div className={styles.semestreHeader}>
-                {semestre}
+                <div>{semestre}</div>
+                {hasInscritos(semestre) && (
+                  <div className={styles.enCursoLabel}>(EN CURSO)</div>
+                )}
               </div>
               
               <div className={styles.cursosContainer}>

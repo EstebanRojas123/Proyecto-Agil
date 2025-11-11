@@ -1,0 +1,34 @@
+.container {
+  flex: 1;
+  background-color: #f3f4f6;
+  padding: 2rem;
+  width: 100%;
+  max-width: calc(100vw - 16rem);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.title {
+  font-size: 1.7rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.developmentMessage {
+  color: #6b7280;
+  font-size: 1rem;
+  text-align: center;
+}
+

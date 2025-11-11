@@ -3,18 +3,8 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import HistorialCurricular from "./components/HistorialCurricular";
 import MallaCurricular from "./components/MallaCurricular";
+import MisProyecciones from "./components/MisProyecciones";
 import styles from "./components/HomePanel.module.css";
-
-function MisProyecciones() {
-  return (
-    <div style={{ padding: '2rem', textAlign: 'center' }}>
-      <h1 style={{ fontSize: '1.7rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1rem' }}>
-        MIS PROYECCIONES
-      </h1>
-      <p style={{ color: '#6b7280' }}>Funcionalidad en desarrollo...</p>
-    </div>
-  );
-}
 
 type MenuSection = 'malla' | 'historial' | 'proyecciones';
 

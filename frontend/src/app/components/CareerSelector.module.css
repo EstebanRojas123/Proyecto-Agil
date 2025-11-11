@@ -1,48 +1,67 @@
 .carreraSelector {
   margin-bottom: 2rem;
-  width: 100%;
+  width: fit-content;
+  display: flex;
 }
 
 .selectWrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  position: relative;
+  display: inline-block;
+  background-color: #457AC6;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  padding-right: 2.5rem;
+  min-width: 300px;
+  max-width: 450px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+}
+
+.selectWrapper:hover {
+  background-color: #3a6ba8;
 }
 
 .carreraLabel {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: 0.85rem;
+  color: white;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  line-height: 1.2;
+}
+
+.selectContainer {
+  position: relative;
+  width: 100%;
 }
 
 .select {
-  padding: 0.75rem 1rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 0.5rem;
-  font-size: 1rem;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.selectDisplay {
+  font-size: 0.95rem;
+  color: white;
+  font-weight: 500;
+  line-height: 1.3;
+  min-height: 1.3em;
+  position: relative;
+  padding-right: 1.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0 center;
+  background-size: 12px;
+}
+
+.select option {
   background-color: white;
   color: #1f2937;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: inherit;
-}
-
-.select:hover {
-  border-color: #9ca3af;
-}
-
-.select:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.selectedCareerName {
-  font-size: 0.875rem;
-  color: #6b7280;
-  font-style: italic;
-  margin-top: 0.25rem;
+  padding: 0.5rem;
 }
 
