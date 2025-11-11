@@ -1,26 +1,17 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCareerSelection } from "@/hooks/useCareerSelection";
 import CareerSelector from "./CareerSelector";
-import { getMallaData, findMostRecentCareer, MallaItem } from "@/services/AvanceService";
+import { getMallaData, MallaItem } from "@/services/AvanceService";
 import styles from "./MallaCurricular.module.css";
 
 export default function MallaCurricular() {
   const { user } = useAuth();
+  const { selectedCareer, handleCareerChange } = useCareerSelection();
   const [mallaData, setMallaData] = useState<MallaItem[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCareer, setSelectedCareer] = useState<{ codigo: string; nombre: string; catalogo: string } | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-
-    // Inicializar con la carrera más reciente
-    const mostRecentCareer = findMostRecentCareer(user.carreras);
-    if (mostRecentCareer) {
-      setSelectedCareer(mostRecentCareer);
-    }
-  }, [user]);
 
   useEffect(() => {
     const fetchMallaData = async () => {
@@ -43,10 +34,6 @@ export default function MallaCurricular() {
 
     fetchMallaData();
   }, [user, selectedCareer]);
-
-  const handleCareerChange = (career: { codigo: string; nombre: string; catalogo: string } | null) => {
-    setSelectedCareer(career);
-  };
 
   // Agrupación por niveles (semestres)
   const mallaByLevel = mallaData ? mallaData.reduce((acc, item) => {

@@ -1,27 +1,18 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { getAvanceData, getAutomaticProjection, findMostRecentCareer, AvanceResponse, Curso, ProyeccionSemestre } from "@/services/AvanceService";
+import { useCareerSelection } from "@/hooks/useCareerSelection";
+import { getAvanceData, getAutomaticProjection, AvanceResponse, Curso, ProyeccionSemestre } from "@/services/AvanceService";
 import CareerSelector from "./CareerSelector";
 import styles from "./HistorialCurricular.module.css";
 
 export default function HistorialCurricular() {
   const { user } = useAuth();
+  const { selectedCareer, handleCareerChange } = useCareerSelection();
   const [avanceData, setAvanceData] = useState<AvanceResponse | null>(null);
   const [proyeccionData, setProyeccionData] = useState<ProyeccionSemestre[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCareer, setSelectedCareer] = useState<{ codigo: string; nombre: string; catalogo: string } | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-
-    // Inicializar con la carrera más reciente
-    const mostRecentCareer = findMostRecentCareer(user.carreras);
-    if (mostRecentCareer) {
-      setSelectedCareer(mostRecentCareer);
-    }
-  }, [user]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -49,10 +40,6 @@ export default function HistorialCurricular() {
 
     fetchData();
   }, [user, selectedCareer]);
-
-  const handleCareerChange = (career: { codigo: string; nombre: string; catalogo: string } | null) => {
-    setSelectedCareer(career);
-  };
 
   const getEstadoClass = (estado: string) => {
     switch (estado) {
