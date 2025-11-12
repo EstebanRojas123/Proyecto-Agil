@@ -29,29 +29,23 @@ export default function CareerSelector({ selectedCareer, onCareerChange }: Caree
     }
   };
 
-  const displayText = selectedCareer 
-    ? getCareerFullName(selectedCareer.nombre)
-    : '';
-
   return (
     <div className={styles.carreraSelector}>
       <div className={styles.selectWrapper}>
         <div className={styles.carreraLabel}>Carrera</div>
-        <div className={styles.selectContainer}>
-          <select 
-            className={styles.select}
-            value={selectedCareer?.codigo || ''}
-            onChange={(e) => handleCareerChange(e.target.value)}
-          >
-            {user?.carreras.map((carrera) => (
-              <option key={carrera.codigo} value={carrera.codigo}>
-                {getCareerFullName(carrera.nombre)} ({carrera.catalogo})
-              </option>
-            ))}
-          </select>
-          <div className={styles.selectDisplay}>
-            {displayText || 'Seleccione una carrera'}
-          </div>
+        <select 
+          className={styles.select}
+          value={selectedCareer?.codigo || ''}
+          onChange={(e) => handleCareerChange(e.target.value)}
+        >
+          {user?.carreras.map((carrera) => (
+            <option key={carrera.codigo} value={carrera.codigo}>
+              {getCareerFullName(carrera.nombre)} ({carrera.catalogo})
+            </option>
+          ))}
+        </select>
+        <div className={styles.selectedCareerName}>
+          {selectedCareer ? getCareerFullName(selectedCareer.nombre) : 'Seleccionar carrera'}
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
+import { CareerSelectionProvider } from "@/context/CareerSelectionContext";
 import Script from "next/script";
 import "./globals.css";
 
@@ -29,7 +30,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <CareerSelectionProvider>
+            {children}
+          </CareerSelectionProvider>
+        </AuthProvider>
         <Script
           id="hide-nextjs-devtools"
           strategy="afterInteractive"

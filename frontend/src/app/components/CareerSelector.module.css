@@ -1,37 +1,24 @@
 .carreraSelector {
-  margin-bottom: 2rem;
-  width: fit-content;
+  margin-bottom: 0.3rem;
   display: flex;
+  justify-content: flex-start;
 }
 
 .selectWrapper {
   position: relative;
-  display: inline-block;
-  background-color: #457AC6;
-  border-radius: 0.75rem;
-  padding: 0.75rem 1.5rem;
-  padding-right: 2.5rem;
-  min-width: 300px;
-  max-width: 450px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s;
-}
-
-.selectWrapper:hover {
-  background-color: #3a6ba8;
+  display: flex;
+  flex-direction: column;
 }
 
 .carreraLabel {
-  font-size: 0.85rem;
-  color: white;
-  font-weight: 500;
-  margin-bottom: 0.25rem;
-  line-height: 1.2;
-}
-
-.selectContainer {
-  position: relative;
-  width: 100%;
+  position: absolute;
+  top: 0.3rem;
+  left: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgb(255, 255, 255);
+  z-index: 1;
+  pointer-events: none;
 }
 
 .select {
@@ -40,28 +27,33 @@
   left: 0;
   width: 100%;
   height: 100%;
-  opacity: 0;
+  background: transparent;
+  color: transparent;
+  border: none;
   cursor: pointer;
+  appearance: none;
   z-index: 2;
-}
-
-.selectDisplay {
-  font-size: 0.95rem;
-  color: white;
-  font-weight: 500;
-  line-height: 1.3;
-  min-height: 1.3em;
-  position: relative;
-  padding-right: 1.5rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0 center;
-  background-size: 12px;
 }
 
 .select option {
   background-color: white;
   color: #1f2937;
   padding: 0.5rem;
+}
+
+.selectedCareerName {
+  background-color: #457AC6;
+  color: white;
+  padding: 1.8rem 3rem 0.5rem 1rem;
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 0.9rem;
+  min-width: 450px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1.2rem;
+  pointer-events: none;
 }
 
