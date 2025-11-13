@@ -4,6 +4,7 @@ import styles from "./components/LoginForm.module.css";
 import { useState, useEffect, useRef } from "react";
 import HomePanel from "./HomePanel";
 import Notification from "./components/Notification";
+import { EmailIcon, LockIcon, HourglassIcon, LoginIcon } from "./components/Icons";
 
 interface NotificationState {
   message: string;
@@ -33,11 +34,9 @@ export default function Home() {
     setNotification(null);
   };
 
-  // Detectar cuando el usuario se desloguea para mostrar mensaje y resetear estado
   useEffect(() => {
-    // Si había un usuario antes y ahora no hay, significa que se deslogueó
     if (prevUserRef.current && !user) {
-      setIsLoading(false); // Resetear el estado de carga
+      setIsLoading(false);
       setNotification({
         message: "Salió exitosamente. ¡Hasta pronto!",
         type: "info",
@@ -45,7 +44,6 @@ export default function Home() {
       });
     }
     prevUserRef.current = user;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,17 +53,14 @@ export default function Home() {
 
     try {
       await login(email, password);
-      // Mostrar mensaje de éxito
       showNotification(
         "¡Inicio de sesión exitoso! Bienvenido/a.",
         "success"
       );
-      // Limpiar campos después de un login exitoso
       setEmail("");
       setPassword("");
-      // Esperar 2 segundos antes de redirigir para que se vea el mensaje
+      
       await new Promise((resolve) => setTimeout(resolve, 1200));
-      // Después del delay, permitir que se muestre HomePanel
       setShouldShowHomePanel(true);
     } catch (err) {
       const errorMessage =
@@ -77,7 +72,6 @@ export default function Home() {
     }
   };
 
-  // Resetear shouldShowHomePanel cuando el usuario se desloguea
   useEffect(() => {
     if (!user) {
       setShouldShowHomePanel(false);
@@ -112,7 +106,9 @@ export default function Home() {
 
             <form onSubmit={handleSubmit}>
               <div className={styles.inputGroup}>
-                <span className={styles.inputIcon}>📧</span>
+                <span className={styles.inputIcon}>
+                  <EmailIcon />
+                </span>
                 <input
                   type="text"
                   name="username"
@@ -126,7 +122,9 @@ export default function Home() {
               </div>
 
               <div className={styles.inputGroup}>
-                <span className={styles.inputIcon}>🔒</span>
+                <span className={styles.inputIcon}>
+                  <LockIcon />
+                </span>
                 <input
                   type="password"
                   name="password"
@@ -144,7 +142,17 @@ export default function Home() {
                 className={styles.loginButton}
                 disabled={isLoading}
               >
-                {isLoading ? "⏳ INGRESANDO..." : "🔐 INGRESAR"}
+                {isLoading ? (
+                  <>
+                    <HourglassIcon />
+                    INGRESANDO...
+                  </>
+                ) : (
+                  <>
+                    <LoginIcon />
+                    INGRESAR
+                  </>
+                )}
               </button>
             </form>
           </div>
