@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import databaseConfig from './config/database.config';
+import authConfig from './config/auth.config';
 import { validationSchema } from './config/validation.schema';
 
 import { DoggyModule } from './doggy/doggy.module';
@@ -15,7 +16,7 @@ import { ProjectionModule } from './projection/projection.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig],
+      load: [databaseConfig, authConfig],
       validationSchema,
     }),
     TypeOrmModule.forRootAsync({

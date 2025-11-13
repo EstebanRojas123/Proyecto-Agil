@@ -1,16 +1,40 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import HistorialCurricular from "./components/HistorialCurricular";
 import MallaCurricular from "./components/MallaCurricular";
 import MisProyecciones from "./components/MisProyecciones";
+import Notification from "./components/Notification";
 import styles from "./components/HomePanel.module.css";
+
+interface NotificationState {
+  message: string;
+  type: "success" | "error" | "info";
+}
 
 type MenuSection = 'malla' | 'historial' | 'proyecciones';
 
 export default function HomePanel() {
   const { user, logout } = useAuth();
   const [activeSection, setActiveSection] = useState<MenuSection>('malla');
+  const [notification, setNotification] = useState<NotificationState | null>(
+    null
+  );
+  const showNotification = (
+    message: string,
+    type: "success" | "error" | "info"
+  ) => {
+    setNotification({ message, type });
+  };
+
+  const hideNotification = () => {
+    setNotification(null);
+  };
+
+  const handleLogout = () => {
+    logout();
+    // El mensaje de logout se mostrará en page.tsx cuando detecte el cambio
+  };
 
   const extractNameFromEmail = (email: string | undefined): string => {
     if (!email) return 'Usuario';
@@ -41,9 +65,18 @@ export default function HomePanel() {
   }
 
   return (
-    <div className={styles.container}>
-      {/* Aside lateral izquierdo */}
-      <aside className={styles.aside}>
+    <>
+      {notification && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={hideNotification}
+          duration={notification.type === "error" ? 7000 : 5000}
+        />
+      )}
+      <div className={styles.container}>
+        {/* Aside lateral izquierdo */}
+        <aside className={styles.aside}>
         <div className={styles.asideTop}>
           <div className={styles.logoContainer}>
             <img
@@ -88,7 +121,7 @@ export default function HomePanel() {
 
         <div className={styles.asideBottom}>
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className={styles.logoutButton}
           >
             Salir →[ ]
@@ -103,6 +136,7 @@ export default function HomePanel() {
         {activeSection === 'proyecciones' && <MisProyecciones />}
       </main>
     </div>
+    </>
   );
 }
 
