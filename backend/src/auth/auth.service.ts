@@ -30,7 +30,6 @@ export class AuthService {
 
   async login(email: string, password: string) {
     const startTime = Date.now();
-    // La API externa usa GET con parámetros en query string, no POST
     const loginUrl = `${this.authUrl}/login.php?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`;
     this.logger.log(`[LOGIN] Iniciando autenticación para: ${email}`);
     this.logger.log(`[LOGIN] URL de autenticación: ${this.authUrl}/login.php`);
@@ -46,7 +45,7 @@ export class AuthService {
                 'User-Agent': 'UCN-Proyeccion/1.0 (+nestjs)',
                 Accept: 'application/json',
               },
-              validateStatus: () => true, // Aceptar todos los códigos de estado
+              validateStatus: () => true,
             },
           )
           .pipe(
@@ -57,19 +56,16 @@ export class AuthService {
 
       const responseTime = Date.now() - startTime;
       
-      // Log detallado de la respuesta completa de la API externa
       this.logger.log(`[LOGIN] Respuesta recibida del servicio externo (${responseTime}ms):`, {
         url: `${this.authUrl}/login.php?email=${encodeURIComponent(email)}&password=***`,
         status: resp.status,
         statusText: resp.statusText,
         tieneData: !!resp.data,
         tipoData: typeof resp.data,
-        dataCompleta: JSON.stringify(resp.data, null, 2), // Respuesta completa en formato JSON
+        dataCompleta: JSON.stringify(resp.data, null, 2),
       });
 
       const { data } = resp;
-
-      // Validar respuesta antes de acceder a propiedades
       if (data.error || !data.rut || !data.carreras) {
         this.logger.error(`[LOGIN] ⚠️ CREDENCIALES INVÁLIDAS para: ${email}`, {
           error: data.error,
@@ -82,7 +78,6 @@ export class AuthService {
           estructuraRespuesta: Object.keys(data || {}),
         });
         
-        // Si la API externa devuelve un mensaje específico, usarlo
         const errorMessage = data.message || data.error || 'Credenciales incorrectas';
         throw new UnauthorizedException(errorMessage);
       }
@@ -101,19 +96,17 @@ export class AuthService {
         access_token: this.jwtService.sign(payload),
         user: {
           ...payload,
-          email: email, // Agregar email al objeto user
+          email: email,
         },
       };
     } catch (error) {
       const responseTime = Date.now() - startTime;
       
-      // Si ya es una excepción de NestJS, re-lanzarla
       if (error instanceof UnauthorizedException) {
         this.logger.warn(`[LOGIN] UnauthorizedException (${responseTime}ms):`, error.message);
         throw error;
       }
 
-      // Para otros errores (red, timeout, etc.), lanzar error interno
       const err = error as AxiosError;
       const errorDetails = {
         mensaje: err.message,
@@ -134,9 +127,8 @@ export class AuthService {
         stack: err.stack,
       };
 
-      this.logger.error(`[LOGIN] ❌ ERROR DE CONEXIÓN con API externa (${responseTime}ms):`, errorDetails);
+      this.logger.error(`[LOGIN] ERROR DE CONEXIÓN con API externa (${responseTime}ms):`, errorDetails);
       
-      // Mensaje más descriptivo según el tipo de error
       let errorMessage = 'Error desconocido';
       if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
         errorMessage = `No se pudo conectar con el servicio de autenticación (${this.authUrl}). Verifica que la URL sea correcta y que el servicio esté disponible.`;
