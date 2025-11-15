@@ -46,6 +46,16 @@ export default function MallaCurricular() {
 
   const levels = Object.keys(mallaByLevel).map(Number).sort((a, b) => a - b);
 
+  // Convertir número a romano
+  const toRoman = (num: number): string => {
+    const romanNumerals: { [key: number]: string } = {
+      1: 'I', 2: 'II', 3: 'III', 4: 'IV', 5: 'V',
+      6: 'VI', 7: 'VII', 8: 'VIII', 9: 'IX', 10: 'X',
+      11: 'XI', 12: 'XII', 13: 'XIII', 14: 'XIV', 15: 'XV'
+    };
+    return romanNumerals[num] || num.toString();
+  };
+
   if (loading) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
@@ -84,7 +94,7 @@ export default function MallaCurricular() {
           {levels.map((level) => (
             <div key={level} className={styles.levelColumn}>
               <div className={styles.levelHeader}>
-                Semestre {level}
+                {toRoman(level)}
               </div>
               
               <div className={styles.coursesContainer}>

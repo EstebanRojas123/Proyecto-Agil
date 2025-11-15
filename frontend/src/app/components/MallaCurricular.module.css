@@ -14,7 +14,7 @@
   font-size: 1.7rem;
   font-weight: bold;
   color: #1f2937;
-  margin-bottom: 1rem;
+  margin-bottom: 0.7rem;
   text-align: left;
 }
 
@@ -66,7 +66,12 @@
   text-align: center;
   font-weight: bold;
   margin-bottom: 0.75rem;
-  font-size: 0.9rem;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-height: 1.85rem;
+  box-sizing: border-box;
 }
 
 .coursesContainer {
@@ -76,57 +81,65 @@
 }
 
 .courseCard {
-  background-color: white;
-  border-radius: 0.5rem;
-  padding: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  position: relative;
-  min-height: 80px;
+  background-color: rgb(255, 255, 255);
+  border-radius: 0.75rem;
+  align-items: flex-start;
+  padding: 0.1rem 0.75rem 0.1rem 0.75rem;
+  width: 100%;
+  height: 82px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  width: 100%;
+  gap: 0;
+  flex-shrink: 0;
   box-sizing: border-box;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  justify-content: space-between;
+  position: relative;
 }
 
 .courseInfo {
   flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
 }
 
 .courseCode {
-  font-size: 0.65rem;
-  color: #9ca3af;
-  font-weight: 500;
-  margin-bottom: 0.25rem;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
+  font-size: 0.58rem;
+  font-weight: 550;
+  color: #1f2937;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  text-align: left;
+  width: 100%;
+  margin-top: 0;
+  flex-shrink: 0;
 }
 
 .courseName {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 0.25rem;
-  line-height: 1.2;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  hyphens: auto;
+  font-size: 0.74rem;
+  color: #374151;
+  line-height: 1.1;
   flex: 1;
+  text-align: center;
+  width: 100%;
   display: flex;
   align-items: center;
+  justify-content: center;
+  margin: auto 0;
 }
 
 .courseCredits {
-  font-size: 0.65rem;
+  font-size: 0.54rem;
   color: #6b7280;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
   font-weight: 500;
+  margin-top: auto;
+  margin-bottom: 0;
+  text-align: left;
+  width: 100%;
+  flex-shrink: 0;
 }
 
 .noData {

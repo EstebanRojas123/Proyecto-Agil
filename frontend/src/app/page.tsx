@@ -22,6 +22,14 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [shouldShowHomePanel, setShouldShowHomePanel] = useState(false);
   const prevUserRef = useRef(user);
+  const hasInitializedRef = useRef(false);
+
+  useEffect(() => {
+    if (!hasInitializedRef.current && user) {
+      setShouldShowHomePanel(true);
+      hasInitializedRef.current = true;
+    }
+  }, [user]);
 
   const showNotification = (
     message: string,
@@ -75,6 +83,7 @@ export default function Home() {
   useEffect(() => {
     if (!user) {
       setShouldShowHomePanel(false);
+      hasInitializedRef.current = false;
     }
   }, [user]);
 

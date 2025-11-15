@@ -14,12 +14,49 @@ interface NotificationState {
 
 type MenuSection = 'malla' | 'historial' | 'proyecciones';
 
+const STORAGE_KEY_ACTIVE_SECTION = "activeSection";
+
 export default function HomePanel() {
   const { user, logout } = useAuth();
   const [activeSection, setActiveSection] = useState<MenuSection>('malla');
   const [notification, setNotification] = useState<NotificationState | null>(
     null
   );
+  const [hayCambiosSinGuardar, setHayCambiosSinGuardar] = useState(false);
+  const [mostrarConfirmacionLogout, setMostrarConfirmacionLogout] = useState(false);
+
+  // Cargar sección activa desde localStorage al montar
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem(STORAGE_KEY_ACTIVE_SECTION);
+      if (stored && (stored === 'malla' || stored === 'historial' || stored === 'proyecciones')) {
+        setActiveSection(stored as MenuSection);
+      }
+    }
+  }, []);
+
+  // Escuchar eventos de cambios sin guardar desde MisProyecciones
+  useEffect(() => {
+    const handleCambiosSinGuardar = (event: CustomEvent) => {
+      setHayCambiosSinGuardar(event.detail.hayCambios);
+    };
+
+    window.addEventListener('proyecciones-cambios-sin-guardar', handleCambiosSinGuardar as EventListener);
+    
+    return () => {
+      window.removeEventListener('proyecciones-cambios-sin-guardar', handleCambiosSinGuardar as EventListener);
+    };
+  }, []);
+
+  // Guardar sección activa en localStorage cuando cambia
+  const handleSectionChange = (section: MenuSection) => {
+    // Los cambios en proyecciones persisten en el estado de React durante la sesión
+    // No se guardan en localStorage hasta que el usuario presione "Guardar" o "Guardar y salir"
+    setActiveSection(section);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_KEY_ACTIVE_SECTION, section);
+    }
+  };
   const showNotification = (
     message: string,
     type: "success" | "error" | "info"
@@ -32,8 +69,33 @@ export default function HomePanel() {
   };
 
   const handleLogout = () => {
+    // Si hay cambios sin guardar en proyecciones, mostrar confirmación
+    if (hayCambiosSinGuardar && activeSection === 'proyecciones') {
+      setMostrarConfirmacionLogout(true);
+    } else {
+      logout();
+    }
+  };
+
+  const confirmarLogoutGuardar = () => {
+    // Disparar evento para que MisProyecciones guarde antes de cerrar
+    window.dispatchEvent(new CustomEvent('proyecciones-guardar-y-cerrar'));
+    setMostrarConfirmacionLogout(false);
+    // Esperar un momento para que se guarde antes de cerrar sesión
+    setTimeout(() => {
+      logout();
+    }, 300);
+  };
+
+  const confirmarLogoutDescartar = () => {
+    // Disparar evento para limpiar sessionStorage
+    window.dispatchEvent(new CustomEvent('proyecciones-descartar-y-cerrar'));
+    setMostrarConfirmacionLogout(false);
     logout();
-    // El mensaje de logout se mostrará en page.tsx cuando detecte el cambio
+  };
+
+  const cancelarLogout = () => {
+    setMostrarConfirmacionLogout(false);
   };
 
   const extractNameFromEmail = (email: string | undefined): string => {
@@ -95,21 +157,21 @@ export default function HomePanel() {
               <h2 className={styles.menuTitle}>Menú Estudiante</h2>
               <nav className={styles.nav}>
                 <button 
-                  onClick={() => setActiveSection('malla')}
+                  onClick={() => handleSectionChange('malla')}
                   className={`${styles.navLink} ${activeSection === 'malla' ? styles.navLinkActive : ''}`}
                 >
                   Malla Curricular
                 </button>
                 
                 <button 
-                  onClick={() => setActiveSection('historial')}
+                  onClick={() => handleSectionChange('historial')}
                   className={`${styles.navLink} ${activeSection === 'historial' ? styles.navLinkActive : ''}`}
                 >
                   Trayectoria Curricular
                 </button>
 
                 <button 
-                  onClick={() => setActiveSection('proyecciones')}
+                  onClick={() => handleSectionChange('proyecciones')}
                   className={`${styles.navLink} ${activeSection === 'proyecciones' ? styles.navLinkActive : ''}`}
                 >
                   Mis Proyecciones
@@ -135,6 +197,60 @@ export default function HomePanel() {
         {activeSection === 'historial' && <HistorialCurricular />}
         {activeSection === 'proyecciones' && <MisProyecciones />}
       </main>
+
+      {mostrarConfirmacionLogout && (
+        <div className={styles.confirmDialogOverlay}>
+          <div className={styles.confirmDialog}>
+            <div className={styles.confirmDialogHeader}>
+              <svg className={styles.confirmDialogIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 9v4"></path>
+                <path d="M12 17h.01"></path>
+                <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"></path>
+              </svg>
+              <h3 className={styles.confirmDialogTitle}>¿Guardar cambios?</h3>
+            </div>
+            <div className={styles.confirmDialogContent}>
+              <button
+                className={styles.cancelButton}
+                onClick={cancelarLogout}
+                title="Cancelar"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+              <p className={styles.confirmDialogMessage}>
+                Tienes cambios sin guardar en tu proyecciones.
+              </p>
+            </div>
+            <div className={styles.confirmDialogButtons}>
+              <button
+                className={styles.confirmButton}
+                onClick={confirmarLogoutGuardar}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                Guardar y salir
+              </button>
+              <button
+                className={styles.discardButton}
+                onClick={confirmarLogoutDescartar}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18"></path>
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                </svg>
+                Descartar y salir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
     </>
   );
