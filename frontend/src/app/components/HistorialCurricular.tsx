@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCareerSelection } from "@/hooks/useCareerSelection";
-import { getAvanceData, getAutomaticProjection, AvanceResponse, Curso, ProyeccionSemestre } from "@/services/AvanceService";
+import { getAvanceData, getAutomaticProjection, AvanceResponse, Curso, ProyeccionSemestre, ProyeccionResponse } from "@/services/AvanceService";
 import CareerSelector from "./CareerSelector";
 import styles from "./HistorialCurricular.module.css";
 
@@ -22,14 +22,41 @@ export default function HistorialCurricular() {
         setLoading(true);
         setError(null);
 
-        // Obtener tanto el historial como la proyección automática
-        const [avance, proyeccion] = await Promise.all([
+        const cacheKey = `automaticProjection_${user.rut}_${selectedCareer.codigo}_${selectedCareer.catalogo}`;
+        const cachedData = localStorage.getItem(cacheKey);
+        
+        let proyeccion: ProyeccionResponse | null = null;
+        
+        if (cachedData) {
+          try {
+            const parsed = JSON.parse(cachedData);
+            const cacheAge = Date.now() - parsed.timestamp;
+            const maxAge = 24 * 60 * 60 * 1000;
+            
+            if (cacheAge < maxAge) {
+              proyeccion = parsed.data;
+            }
+          } catch (e) {
+            console.error("Error al leer caché:", e);
+          }
+        }
+
+        const [avance, proyeccionData] = await Promise.all([
           getAvanceData(user.rut, selectedCareer.codigo, selectedCareer.catalogo),
-          getAutomaticProjection(user.rut, selectedCareer.codigo, selectedCareer.catalogo)
+          proyeccion 
+            ? Promise.resolve(proyeccion)
+            : getAutomaticProjection(user.rut, selectedCareer.codigo, selectedCareer.catalogo)
         ]);
         
+        if (!proyeccion) {
+          localStorage.setItem(cacheKey, JSON.stringify({
+            data: proyeccionData,
+            timestamp: Date.now()
+          }));
+        }
+        
         setAvanceData(avance);
-        setProyeccionData(proyeccion.semestres);
+        setProyeccionData(proyeccionData.semestres);
       } catch (err) {
         setError("Error al cargar el historial curricular");
         console.error("Error fetching data:", err);

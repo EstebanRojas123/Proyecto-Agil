@@ -25,7 +25,6 @@ export default function HomePanel() {
   const [hayCambiosSinGuardar, setHayCambiosSinGuardar] = useState(false);
   const [mostrarConfirmacionLogout, setMostrarConfirmacionLogout] = useState(false);
 
-  // Cargar sección activa desde localStorage al montar
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem(STORAGE_KEY_ACTIVE_SECTION);
@@ -35,7 +34,6 @@ export default function HomePanel() {
     }
   }, []);
 
-  // Escuchar eventos de cambios sin guardar desde MisProyecciones
   useEffect(() => {
     const handleCambiosSinGuardar = (event: CustomEvent) => {
       setHayCambiosSinGuardar(event.detail.hayCambios);
@@ -48,10 +46,7 @@ export default function HomePanel() {
     };
   }, []);
 
-  // Guardar sección activa en localStorage cuando cambia
   const handleSectionChange = (section: MenuSection) => {
-    // Los cambios en proyecciones persisten en el estado de React durante la sesión
-    // No se guardan en localStorage hasta que el usuario presione "Guardar" o "Guardar y salir"
     setActiveSection(section);
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY_ACTIVE_SECTION, section);
