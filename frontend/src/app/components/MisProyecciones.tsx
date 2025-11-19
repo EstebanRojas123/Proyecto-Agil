@@ -129,10 +129,18 @@ export default function MisProyecciones() {
     showNotification("Nueva proyección creada", "success");
   };
 
-  const guardarProyeccionActual = () => {
+  const guardarProyeccionActual = (): boolean => {
     if (!proyeccionActivaId) {
       crearNuevaProyeccion();
-      return;
+      return true;
+    }
+
+    if (cursosConAdvertencia.size > 0) {
+      showNotification(
+        "No se puede guardar: hay cursos inválidos en la proyección. Espera a que se eliminen automáticamente.",
+        "warning"
+      );
+      return false;
     }
 
     const semestresVacios = semestresProyectados.filter(semestre => semestre.cursos.length === 0);
@@ -142,7 +150,7 @@ export default function MisProyecciones() {
         `No se puede guardar: los siguientes semestres están vacíos: ${periodosVacios}. Cada semestre debe tener al menos un curso.`,
         "warning"
       );
-      return;
+      return false;
     }
 
     const data = cargarProyeccionesGuardadas() || { proyecciones: [], proyeccionActiva: null };
@@ -167,7 +175,9 @@ export default function MisProyecciones() {
       }
       
       showNotification("Proyección guardada", "success");
+      return true;
     }
+    return false;
   };
 
   const descartarCambios = () => {
@@ -469,6 +479,15 @@ export default function MisProyecciones() {
   useEffect(() => {
     const handleGuardarYCerrar = () => {
       if (proyeccionActivaId) {
+        if (cursosConAdvertencia.size > 0) {
+          showNotification(
+            "No se puede guardar: hay cursos inválidos en la proyección. Espera a que se eliminen automáticamente o elimínalos manualmente.",
+            "warning"
+          );
+          window.dispatchEvent(new CustomEvent('proyecciones-guardar-fallido'));
+          return;
+        }
+
         const semestresVacios = semestresProyectados.filter(semestre => semestre.cursos.length === 0);
         if (semestresVacios.length > 0) {
           const semestresConCursos = semestresProyectados.filter(semestre => semestre.cursos.length > 0);
@@ -505,6 +524,9 @@ export default function MisProyecciones() {
             }
           }
         }
+        window.dispatchEvent(new CustomEvent('proyecciones-guardar-exitoso'));
+      } else {
+        window.dispatchEvent(new CustomEvent('proyecciones-guardar-exitoso'));
       }
     };
 
@@ -522,7 +544,7 @@ export default function MisProyecciones() {
       window.removeEventListener('proyecciones-guardar-y-cerrar', handleGuardarYCerrar);
       window.removeEventListener('proyecciones-descartar-y-cerrar', handleDescartarYCerrar);
     };
-  }, [semestresProyectados, proyeccionActivaId]);
+  }, [semestresProyectados, proyeccionActivaId, cursosConAdvertencia]);
 
   const [notification, setNotification] = useState<{
     message: string;
@@ -1330,7 +1352,7 @@ export default function MisProyecciones() {
           <button
             className={styles.saveProyeccionButton}
             onClick={guardarProyeccionActual}
-            disabled={!hayCambiosSinGuardar}
+            disabled={!hayCambiosSinGuardar || cursosConAdvertencia.size > 0}
           >
             ✓ Guardar
           </button>

@@ -75,11 +75,30 @@ export default function HomePanel() {
   const confirmarLogoutGuardar = () => {
     // Disparar evento para que MisProyecciones guarde antes de cerrar
     window.dispatchEvent(new CustomEvent('proyecciones-guardar-y-cerrar'));
-    setMostrarConfirmacionLogout(false);
-    // Esperar un momento para que se guarde antes de cerrar sesión
-    setTimeout(() => {
+    
+    const handleGuardarExitoso = () => {
+      window.removeEventListener('proyecciones-guardar-exitoso', handleGuardarExitoso);
+      window.removeEventListener('proyecciones-guardar-fallido', handleGuardarFallido);
+      setMostrarConfirmacionLogout(false);
       logout();
-    }, 300);
+    };
+
+    const handleGuardarFallido = () => {
+      window.removeEventListener('proyecciones-guardar-exitoso', handleGuardarExitoso);
+      window.removeEventListener('proyecciones-guardar-fallido', handleGuardarFallido);
+      setMostrarConfirmacionLogout(false);
+    };
+
+    window.addEventListener('proyecciones-guardar-exitoso', handleGuardarExitoso, { once: true });
+    window.addEventListener('proyecciones-guardar-fallido', handleGuardarFallido, { once: true });
+    
+    setTimeout(() => {
+      window.removeEventListener('proyecciones-guardar-exitoso', handleGuardarExitoso);
+      window.removeEventListener('proyecciones-guardar-fallido', handleGuardarFallido);
+      if (mostrarConfirmacionLogout) {
+        setMostrarConfirmacionLogout(false);
+      }
+    }, 1000);
   };
 
   const confirmarLogoutDescartar = () => {
