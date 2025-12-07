@@ -11,6 +11,7 @@ import { AuthModule } from './auth/auth.module';
 import { AvanceModule } from './avance/avance.module';
 import { ExternalApiModule } from './external/external-api.module';
 import { ProjectionModule } from './projection/projection.module';
+import { ManualProjectionModule } from './manual-projection/manual-projection.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { ProjectionModule } from './projection/projection.module';
     AvanceModule,
     ExternalApiModule,
     ProjectionModule,
+    ManualProjectionModule,
   ],
 })
 export class AppModule {}

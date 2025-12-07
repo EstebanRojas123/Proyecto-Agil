@@ -1,0 +1,56 @@
+### Crear proyección manual
+POST http://localhost:3000/manual-projections
+Content-Type: application/json
+
+{
+  "estudiante": "12345678-k",
+  "proyeccionActivaId": "proy_2026_ABC123_sameUser",
+  "semestresProyectados": [
+    {
+      "id": "2027-1",
+      "periodo": "2027-1",
+      "cursos": [
+        {
+          "codigo": "ECIN-00600",
+          "asignatura": "Minería de Datos",
+          "creditos": 5,
+          "nivel": 6,
+          "prereq": "ECIN-00462"
+        },
+        {
+          "codigo": "ECIN-00550",
+          "asignatura": "Inteligencia Artificial",
+          "creditos": 5,
+          "nivel": 6,
+          "prereq": ""
+        }
+      ]
+    },
+    {
+      "id": "2027-2",
+      "periodo": "2027-2",
+      "cursos": [
+        {
+          "codigo": "ECIN-00610",
+          "asignatura": "Ingeniería de Software II",
+          "creditos": 5,
+          "nivel": 6,
+          "prereq": "ECIN-00561"
+        }
+      ]
+    }
+  ]
+}
+
+
+
+### Obtener todas las proyecciones de un usuario
+GET http://localhost:3000/manual-projections/user/12345678-k
+
+
+### Obtener una proyección específica por id
+GET http://localhost:3000/manual-projections/proy_1763513493468_hr171kro6
+
+
+### Eliminar una proyección por id
+DELETE http://localhost:3000/manual-projections/proy_1763513493468_hr171kro6

@@ -3,9 +3,19 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCareerSelection } from "@/hooks/useCareerSelection";
 import CareerSelector from "./CareerSelector";
-import { getMallaData, getAvanceData, MallaItem, Curso } from "@/services/AvanceService";
+import {
+  getMallaData,
+  getAvanceData,
+  MallaItem,
+  Curso,
+} from "@/services/AvanceService";
 import Notification from "./Notification";
 import styles from "./MisProyecciones.module.css";
+import {
+  saveManualProjection,
+  ManualProjectionPayload,
+} from "@/services/manualProjectionsService";
+import { deleteManualProjectionById } from "@/services/manualProjectionsService";
 
 export default function MisProyecciones() {
   const { user } = useAuth();
@@ -15,7 +25,7 @@ export default function MisProyecciones() {
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   interface ProyectadoSemestre {
     id: string;
     periodo: string;
@@ -34,19 +44,30 @@ export default function MisProyecciones() {
     proyecciones: ProyeccionGuardada[];
     proyeccionActiva: string | null;
   }
-  
-  const [semestresProyectados, setSemestresProyectados] = useState<ProyectadoSemestre[]>([]);
-  const [proyeccionActivaId, setProyeccionActivaId] = useState<string | null>(null);
-  const [proyeccionesGuardadas, setProyeccionesGuardadas] = useState<ProyeccionGuardada[]>([]);
-  const [mostrarSelectorProyecciones, setMostrarSelectorProyecciones] = useState(false);
+
+  const [semestresProyectados, setSemestresProyectados] = useState<
+    ProyectadoSemestre[]
+  >([]);
+  const [proyeccionActivaId, setProyeccionActivaId] = useState<string | null>(
+    null
+  );
+  const [proyeccionesGuardadas, setProyeccionesGuardadas] = useState<
+    ProyeccionGuardada[]
+  >([]);
+  const [mostrarSelectorProyecciones, setMostrarSelectorProyecciones] =
+    useState(false);
   const [hayCambiosSinGuardar, setHayCambiosSinGuardar] = useState(false);
-  
-  const [lastDeletedState, setLastDeletedState] = useState<ProyectadoSemestre[] | null>(null);
-  
+
+  const [lastDeletedState, setLastDeletedState] = useState<
+    ProyectadoSemestre[] | null
+  >(null);
+
   const [draggedCourse, setDraggedCourse] = useState<MallaItem | null>(null);
   const [dragOverSemester, setDragOverSemester] = useState<string | null>(null);
-  
-  const [cursosConAdvertencia, setCursosConAdvertencia] = useState<Set<string>>(new Set());
+
+  const [cursosConAdvertencia, setCursosConAdvertencia] = useState<Set<string>>(
+    new Set()
+  );
 
   const getStorageKey = () => {
     if (!selectedCareer) return null;
@@ -76,11 +97,11 @@ export default function MisProyecciones() {
             nombre: "Proyección 1",
             fechaCreacion: new Date().toISOString(),
             fechaModificacion: new Date().toISOString(),
-            semestresProyectados: parsed
+            semestresProyectados: parsed,
           };
           const nuevoData: ProyeccionesData = {
             proyecciones: [proyeccionMigrada],
-            proyeccionActiva: proyeccionMigrada.id
+            proyeccionActiva: proyeccionMigrada.id,
           };
           localStorage.setItem(storageKey, JSON.stringify(nuevoData));
           return nuevoData;
@@ -112,10 +133,13 @@ export default function MisProyecciones() {
       nombre: `Proyección ${proyeccionesGuardadas.length + 1}`,
       fechaCreacion: new Date().toISOString(),
       fechaModificacion: new Date().toISOString(),
-      semestresProyectados: []
+      semestresProyectados: [],
     };
 
-    const data = cargarProyeccionesGuardadas() || { proyecciones: [], proyeccionActiva: null };
+    const data = cargarProyeccionesGuardadas() || {
+      proyecciones: [],
+      proyeccionActiva: null,
+    };
     data.proyecciones.push(nuevaProyeccion);
     data.proyeccionActiva = nuevoId;
 
@@ -129,15 +153,44 @@ export default function MisProyecciones() {
     showNotification("Nueva proyección creada", "success");
   };
 
-  const guardarProyeccionActual = () => {
+  const buildManualProjectionPayload = (): ManualProjectionPayload | null => {
+    if (!user || !user.rut || !proyeccionActivaId) {
+      console.warn(
+        "Falta user.rut o proyeccionActivaId para guardar en backend"
+      );
+      return null;
+    }
+
+    return {
+      estudiante: user.rut, // <- AQUÍ va el rut del usuario logueado
+      proyeccionActivaId,
+      semestresProyectados: semestresProyectados.map((sem) => ({
+        id: sem.id,
+        periodo: sem.periodo,
+        cursos: sem.cursos.map((curso) => ({
+          codigo: curso.codigo,
+          asignatura: curso.asignatura,
+          creditos: curso.creditos,
+          nivel: curso.nivel,
+          prereq: (curso as any).prereq ?? "", // depende de tu MallaItem
+        })),
+      })),
+    };
+  };
+
+  const guardarProyeccionActual = async () => {
     if (!proyeccionActivaId) {
       crearNuevaProyeccion();
       return;
     }
 
-    const semestresVacios = semestresProyectados.filter(semestre => semestre.cursos.length === 0);
+    const semestresVacios = semestresProyectados.filter(
+      (semestre) => semestre.cursos.length === 0
+    );
     if (semestresVacios.length > 0) {
-      const periodosVacios = semestresVacios.map(s => formatPeriodo(s.periodo)).join(', ');
+      const periodosVacios = semestresVacios
+        .map((s) => formatPeriodo(s.periodo))
+        .join(", ");
       showNotification(
         `No se puede guardar: los siguientes semestres están vacíos: ${periodosVacios}. Cada semestre debe tener al menos un curso.`,
         "warning"
@@ -145,28 +198,50 @@ export default function MisProyecciones() {
       return;
     }
 
-    const data = cargarProyeccionesGuardadas() || { proyecciones: [], proyeccionActiva: null };
-    const indice = data.proyecciones.findIndex(p => p.id === proyeccionActivaId);
-    
+    const data = cargarProyeccionesGuardadas() || {
+      proyecciones: [],
+      proyeccionActiva: null,
+    };
+    const indice = data.proyecciones.findIndex(
+      (p) => p.id === proyeccionActivaId
+    );
+
     if (indice !== -1) {
       data.proyecciones[indice].semestresProyectados = semestresProyectados;
       data.proyecciones[indice].fechaModificacion = new Date().toISOString();
       guardarProyecciones(data);
       setProyeccionesGuardadas(data.proyecciones);
       setHayCambiosSinGuardar(false);
-      
+
       const sessionKey = getSessionStorageKey();
       if (sessionKey) {
         sessionStorage.removeItem(sessionKey);
       }
-      
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('proyecciones-cambios-sin-guardar', { 
-          detail: { hayCambios: false } 
-        }));
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("proyecciones-cambios-sin-guardar", {
+            detail: { hayCambios: false },
+          })
+        );
       }
-      
-      showNotification("Proyección guardada", "success");
+
+      showNotification("Proyección guardada (local)", "success");
+    }
+
+    // 👉 AHORA: guardar también en el backend
+    const payload = buildManualProjectionPayload();
+    if (!payload) return;
+
+    try {
+      await saveManualProjection(payload);
+      showNotification("Proyección sincronizada con el servidor", "success");
+    } catch (err) {
+      console.error("Error al guardar proyección en backend:", err);
+      showNotification(
+        "Se guardó localmente, pero falló al guardar en el servidor",
+        "error"
+      );
     }
   };
 
@@ -176,48 +251,59 @@ export default function MisProyecciones() {
     const data = cargarProyeccionesGuardadas();
     if (!data) return;
 
-    const proyeccion = data.proyecciones.find(p => p.id === proyeccionActivaId);
+    const proyeccion = data.proyecciones.find(
+      (p) => p.id === proyeccionActivaId
+    );
     if (proyeccion && mallaData) {
-      const proyeccionesValidadas = proyeccion.semestresProyectados.map((semestre: ProyectadoSemestre) => ({
-        ...semestre,
-        cursos: semestre.cursos
-          .map((cursoGuardado: MallaItem) => 
-            mallaData.find(m => m.codigo === cursoGuardado.codigo)
-          )
-          .filter((curso: MallaItem | undefined): curso is MallaItem => curso !== undefined)
-      }));
+      const proyeccionesValidadas = proyeccion.semestresProyectados.map(
+        (semestre: ProyectadoSemestre) => ({
+          ...semestre,
+          cursos: semestre.cursos
+            .map((cursoGuardado: MallaItem) =>
+              mallaData.find((m) => m.codigo === cursoGuardado.codigo)
+            )
+            .filter(
+              (curso: MallaItem | undefined): curso is MallaItem =>
+                curso !== undefined
+            ),
+        })
+      );
       setSemestresProyectados(proyeccionesValidadas);
       guardarEnSessionStorage(proyeccionesValidadas);
       setHayCambiosSinGuardar(false);
       setLastDeletedState(null);
-      
+
       const sessionKey = getSessionStorageKey();
       if (sessionKey) {
         sessionStorage.removeItem(sessionKey);
       }
-      
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('proyecciones-cambios-sin-guardar', { 
-          detail: { hayCambios: false } 
-        }));
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("proyecciones-cambios-sin-guardar", {
+            detail: { hayCambios: false },
+          })
+        );
       }
-      
+
       showNotification("Cambios descartados", "info");
     }
   };
 
   const verificarCambiosSinGuardar = (): boolean => {
     if (!proyeccionActivaId) return false;
-    
+
     const data = cargarProyeccionesGuardadas();
     if (!data) return false;
-    
-    const proyeccionGuardada = data.proyecciones.find(p => p.id === proyeccionActivaId);
+
+    const proyeccionGuardada = data.proyecciones.find(
+      (p) => p.id === proyeccionActivaId
+    );
     if (!proyeccionGuardada) return false;
-    
+
     const guardados = JSON.stringify(proyeccionGuardada.semestresProyectados);
     const actuales = JSON.stringify(semestresProyectados);
-    
+
     return guardados !== actuales;
   };
 
@@ -231,34 +317,44 @@ export default function MisProyecciones() {
     if (proyeccionActivaId) {
       const data = cargarProyeccionesGuardadas();
       if (data) {
-        const proyeccionGuardada = data.proyecciones.find(p => p.id === proyeccionActivaId);
+        const proyeccionGuardada = data.proyecciones.find(
+          (p) => p.id === proyeccionActivaId
+        );
         if (proyeccionGuardada) {
-          const guardados = JSON.stringify(proyeccionGuardada.semestresProyectados);
+          const guardados = JSON.stringify(
+            proyeccionGuardada.semestresProyectados
+          );
           const actuales = JSON.stringify(semestresProyectados);
           const tieneCambios = guardados !== actuales;
-          
+
           setHayCambiosSinGuardar(tieneCambios);
-          
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('proyecciones-cambios-sin-guardar', { 
-              detail: { hayCambios: tieneCambios } 
-            }));
+
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("proyecciones-cambios-sin-guardar", {
+                detail: { hayCambios: tieneCambios },
+              })
+            );
           }
         } else {
           setHayCambiosSinGuardar(false);
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('proyecciones-cambios-sin-guardar', { 
-              detail: { hayCambios: false } 
-            }));
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("proyecciones-cambios-sin-guardar", {
+                detail: { hayCambios: false },
+              })
+            );
           }
         }
       }
     } else {
       setHayCambiosSinGuardar(false);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('proyecciones-cambios-sin-guardar', { 
-          detail: { hayCambios: false } 
-        }));
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("proyecciones-cambios-sin-guardar", {
+            detail: { hayCambios: false },
+          })
+        );
       }
     }
   }, [semestresProyectados, proyeccionActivaId]);
@@ -267,55 +363,79 @@ export default function MisProyecciones() {
     const data = cargarProyeccionesGuardadas();
     if (!data) return;
 
-    const proyeccion = data.proyecciones.find(p => p.id === id);
+    const proyeccion = data.proyecciones.find((p) => p.id === id);
     if (proyeccion) {
       if (proyeccionActivaId && mallaData) {
-        const indiceActual = data.proyecciones.findIndex(p => p.id === proyeccionActivaId);
+        const indiceActual = data.proyecciones.findIndex(
+          (p) => p.id === proyeccionActivaId
+        );
         if (indiceActual !== -1) {
-          data.proyecciones[indiceActual].semestresProyectados = semestresProyectados;
-          data.proyecciones[indiceActual].fechaModificacion = new Date().toISOString();
+          data.proyecciones[indiceActual].semestresProyectados =
+            semestresProyectados;
+          data.proyecciones[indiceActual].fechaModificacion =
+            new Date().toISOString();
         }
       }
 
       data.proyeccionActiva = id;
       guardarProyecciones(data);
       setProyeccionActivaId(id);
-      
+
       if (mallaData) {
-        const proyeccionesValidadas = proyeccion.semestresProyectados.map((semestre: ProyectadoSemestre) => ({
-          ...semestre,
-          cursos: semestre.cursos
-            .map((cursoGuardado: MallaItem) => 
-              mallaData.find(m => m.codigo === cursoGuardado.codigo)
-            )
-            .filter((curso: MallaItem | undefined): curso is MallaItem => curso !== undefined)
-        }));
+        const proyeccionesValidadas = proyeccion.semestresProyectados.map(
+          (semestre: ProyectadoSemestre) => ({
+            ...semestre,
+            cursos: semestre.cursos
+              .map((cursoGuardado: MallaItem) =>
+                mallaData.find((m) => m.codigo === cursoGuardado.codigo)
+              )
+              .filter(
+                (curso: MallaItem | undefined): curso is MallaItem =>
+                  curso !== undefined
+              ),
+          })
+        );
         setSemestresProyectados(proyeccionesValidadas);
       } else {
         setSemestresProyectados(proyeccion.semestresProyectados);
       }
-      
+
       setHayCambiosSinGuardar(false);
       setLastDeletedState(null);
-      
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('proyecciones-cambios-sin-guardar', { 
-          detail: { hayCambios: false } 
-        }));
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("proyecciones-cambios-sin-guardar", {
+            detail: { hayCambios: false },
+          })
+        );
       }
-      
+
       setMostrarSelectorProyecciones(false);
     }
   };
 
-  const eliminarProyeccion = (id: string) => {
-    if (!confirm("¿Estás seguro de que quieres eliminar esta proyección?")) return;
+  const eliminarProyeccion = async (id: string) => {
+    if (!confirm("¿Estás seguro de que quieres eliminar esta proyección?"))
+      return;
 
+    // 1) Intentar borrar en el backend, pero sin bloquear el borrado local
+    try {
+      await deleteManualProjectionById(id);
+    } catch (err) {
+      console.warn(
+        "No se pudo eliminar la proyección en el servidor (probablemente no existía aún). Se elimina solo localmente.",
+        err
+      );
+      // OJO: NO hacemos return aquí
+    }
+
+    // 2) Lógica ORIGINAL de borrado local (idéntica a la que pegaste)
     const data = cargarProyeccionesGuardadas();
     if (!data) return;
 
-    data.proyecciones = data.proyecciones.filter(p => p.id !== id);
-    
+    data.proyecciones = data.proyecciones.filter((p) => p.id !== id);
+
     if (data.proyeccionActiva === id) {
       if (data.proyecciones.length > 0) {
         data.proyeccionActiva = data.proyecciones[0].id;
@@ -360,7 +480,7 @@ export default function MisProyecciones() {
     if (data) {
       setProyeccionesGuardadas(data.proyecciones);
       setProyeccionActivaId(data.proyeccionActiva);
-      
+
       const sessionKey = getSessionStorageKey();
       if (sessionKey && data.proyeccionActiva) {
         try {
@@ -368,15 +488,26 @@ export default function MisProyecciones() {
           if (sessionData) {
             const sessionParsed = JSON.parse(sessionData);
             if (sessionParsed.proyeccionActivaId === data.proyeccionActiva) {
-              if (sessionParsed.semestresProyectados && Array.isArray(sessionParsed.semestresProyectados)) {
-                const proyeccionesValidadas = sessionParsed.semestresProyectados.map((semestre: ProyectadoSemestre) => ({
-                  ...semestre,
-                  cursos: semestre.cursos
-                    .map((cursoGuardado: MallaItem) => 
-                      mallaData.find(m => m.codigo === cursoGuardado.codigo)
-                    )
-                    .filter((curso: MallaItem | undefined): curso is MallaItem => curso !== undefined)
-                }));
+              if (
+                sessionParsed.semestresProyectados &&
+                Array.isArray(sessionParsed.semestresProyectados)
+              ) {
+                const proyeccionesValidadas =
+                  sessionParsed.semestresProyectados.map(
+                    (semestre: ProyectadoSemestre) => ({
+                      ...semestre,
+                      cursos: semestre.cursos
+                        .map((cursoGuardado: MallaItem) =>
+                          mallaData.find(
+                            (m) => m.codigo === cursoGuardado.codigo
+                          )
+                        )
+                        .filter(
+                          (curso: MallaItem | undefined): curso is MallaItem =>
+                            curso !== undefined
+                        ),
+                    })
+                  );
                 setSemestresProyectados(proyeccionesValidadas);
                 isInitialLoadSessionRef.current = true;
                 return;
@@ -387,18 +518,26 @@ export default function MisProyecciones() {
           console.error("Error al cargar desde sessionStorage:", error);
         }
       }
-      
+
       if (data.proyeccionActiva) {
-        const proyeccionActiva = data.proyecciones.find(p => p.id === data.proyeccionActiva);
+        const proyeccionActiva = data.proyecciones.find(
+          (p) => p.id === data.proyeccionActiva
+        );
         if (proyeccionActiva) {
-          const proyeccionesValidadas = proyeccionActiva.semestresProyectados.map((semestre: ProyectadoSemestre) => ({
-            ...semestre,
-            cursos: semestre.cursos
-              .map((cursoGuardado: MallaItem) => 
-                mallaData.find(m => m.codigo === cursoGuardado.codigo)
-              )
-              .filter((curso: MallaItem | undefined): curso is MallaItem => curso !== undefined)
-          }));
+          const proyeccionesValidadas =
+            proyeccionActiva.semestresProyectados.map(
+              (semestre: ProyectadoSemestre) => ({
+                ...semestre,
+                cursos: semestre.cursos
+                  .map((cursoGuardado: MallaItem) =>
+                    mallaData.find((m) => m.codigo === cursoGuardado.codigo)
+                  )
+                  .filter(
+                    (curso: MallaItem | undefined): curso is MallaItem =>
+                      curso !== undefined
+                  ),
+              })
+            );
           setSemestresProyectados(proyeccionesValidadas);
         } else {
           setSemestresProyectados([]);
@@ -417,7 +556,7 @@ export default function MisProyecciones() {
 
   const guardarEnSessionStorage = (nuevosSemestres: ProyectadoSemestre[]) => {
     if (!selectedCareer || !proyeccionActivaId || !mallaData) return;
-    
+
     if (isInitialLoadSessionRef.current) return;
 
     const sessionKey = getSessionStorageKey();
@@ -425,7 +564,7 @@ export default function MisProyecciones() {
       try {
         const sessionData = {
           proyeccionActivaId,
-          semestresProyectados: nuevosSemestres
+          semestresProyectados: nuevosSemestres,
         };
         sessionStorage.setItem(sessionKey, JSON.stringify(sessionData));
       } catch (error) {
@@ -452,16 +591,18 @@ export default function MisProyecciones() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (mostrarSelectorProyecciones && 
-          !target.closest(`.${styles.proyeccionesSelectorContainer}`)) {
+      if (
+        mostrarSelectorProyecciones &&
+        !target.closest(`.${styles.proyeccionesSelectorContainer}`)
+      ) {
         setMostrarSelectorProyecciones(false);
       }
     };
 
     if (mostrarSelectorProyecciones) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
       return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener("mousedown", handleClickOutside);
       };
     }
   }, [mostrarSelectorProyecciones]);
@@ -469,20 +610,28 @@ export default function MisProyecciones() {
   useEffect(() => {
     const handleGuardarYCerrar = () => {
       if (proyeccionActivaId) {
-        const semestresVacios = semestresProyectados.filter(semestre => semestre.cursos.length === 0);
+        const semestresVacios = semestresProyectados.filter(
+          (semestre) => semestre.cursos.length === 0
+        );
         if (semestresVacios.length > 0) {
-          const semestresConCursos = semestresProyectados.filter(semestre => semestre.cursos.length > 0);
-          
+          const semestresConCursos = semestresProyectados.filter(
+            (semestre) => semestre.cursos.length > 0
+          );
+
           const data = cargarProyeccionesGuardadas();
           if (data) {
-            const indice = data.proyecciones.findIndex(p => p.id === proyeccionActivaId);
+            const indice = data.proyecciones.findIndex(
+              (p) => p.id === proyeccionActivaId
+            );
             if (indice !== -1) {
-              data.proyecciones[indice].semestresProyectados = semestresConCursos;
-              data.proyecciones[indice].fechaModificacion = new Date().toISOString();
+              data.proyecciones[indice].semestresProyectados =
+                semestresConCursos;
+              data.proyecciones[indice].fechaModificacion =
+                new Date().toISOString();
               guardarProyecciones(data);
-              
+
               setSemestresProyectados(semestresConCursos);
-              
+
               const sessionKey = getSessionStorageKey();
               if (sessionKey) {
                 sessionStorage.removeItem(sessionKey);
@@ -492,12 +641,16 @@ export default function MisProyecciones() {
         } else {
           const data = cargarProyeccionesGuardadas();
           if (data) {
-            const indice = data.proyecciones.findIndex(p => p.id === proyeccionActivaId);
+            const indice = data.proyecciones.findIndex(
+              (p) => p.id === proyeccionActivaId
+            );
             if (indice !== -1) {
-              data.proyecciones[indice].semestresProyectados = semestresProyectados;
-              data.proyecciones[indice].fechaModificacion = new Date().toISOString();
+              data.proyecciones[indice].semestresProyectados =
+                semestresProyectados;
+              data.proyecciones[indice].fechaModificacion =
+                new Date().toISOString();
               guardarProyecciones(data);
-              
+
               const sessionKey = getSessionStorageKey();
               if (sessionKey) {
                 sessionStorage.removeItem(sessionKey);
@@ -515,12 +668,24 @@ export default function MisProyecciones() {
       }
     };
 
-    window.addEventListener('proyecciones-guardar-y-cerrar', handleGuardarYCerrar);
-    window.addEventListener('proyecciones-descartar-y-cerrar', handleDescartarYCerrar);
-    
+    window.addEventListener(
+      "proyecciones-guardar-y-cerrar",
+      handleGuardarYCerrar
+    );
+    window.addEventListener(
+      "proyecciones-descartar-y-cerrar",
+      handleDescartarYCerrar
+    );
+
     return () => {
-      window.removeEventListener('proyecciones-guardar-y-cerrar', handleGuardarYCerrar);
-      window.removeEventListener('proyecciones-descartar-y-cerrar', handleDescartarYCerrar);
+      window.removeEventListener(
+        "proyecciones-guardar-y-cerrar",
+        handleGuardarYCerrar
+      );
+      window.removeEventListener(
+        "proyecciones-descartar-y-cerrar",
+        handleDescartarYCerrar
+      );
     };
   }, [semestresProyectados, proyeccionActivaId]);
 
@@ -553,7 +718,11 @@ export default function MisProyecciones() {
 
         const [malla, avance] = await Promise.all([
           getMallaData(selectedCareer.codigo, selectedCareer.catalogo),
-          getAvanceData(user.rut, selectedCareer.codigo, selectedCareer.catalogo)
+          getAvanceData(
+            user.rut,
+            selectedCareer.codigo,
+            selectedCareer.catalogo
+          ),
         ]);
 
         setMallaData(malla);
@@ -588,14 +757,20 @@ export default function MisProyecciones() {
         }
       }
     } catch (error) {
-      console.error("Error al cargar nivel seleccionado desde localStorage:", error);
+      console.error(
+        "Error al cargar nivel seleccionado desde localStorage:",
+        error
+      );
     }
 
     if (mallaData && avanceData) {
       const cursosAprobadosOInscritos = new Set(
         (avanceData || [])
-          .filter(curso => curso.status === 'APROBADO' || curso.status === 'INSCRITO')
-          .map(curso => curso.course)
+          .filter(
+            (curso) =>
+              curso.status === "APROBADO" || curso.status === "INSCRITO"
+          )
+          .map((curso) => curso.course)
       );
 
       const mallaByLevel = mallaData.reduce((acc, item) => {
@@ -606,14 +781,16 @@ export default function MisProyecciones() {
         return acc;
       }, {} as { [key: number]: MallaItem[] });
 
-      const levels = Object.keys(mallaByLevel).map(Number).sort((a, b) => a - b);
-      
+      const levels = Object.keys(mallaByLevel)
+        .map(Number)
+        .sort((a, b) => a - b);
+
       for (const level of levels) {
         const cursosDelNivel = mallaByLevel[level];
         const tienePendientes = cursosDelNivel.some(
-          curso => !cursosAprobadosOInscritos.has(curso.codigo)
+          (curso) => !cursosAprobadosOInscritos.has(curso.codigo)
         );
-        
+
         if (tienePendientes) {
           setSelectedLevel(level);
           break;
@@ -635,36 +812,45 @@ export default function MisProyecciones() {
         localStorage.removeItem(levelStorageKey);
       }
     } catch (error) {
-      console.error("Error al guardar nivel seleccionado en localStorage:", error);
+      console.error(
+        "Error al guardar nivel seleccionado en localStorage:",
+        error
+      );
     }
   }, [selectedLevel, selectedCareer]);
 
-  const mallaByLevel = mallaData ? mallaData.reduce((acc, item) => {
-    if (!acc[item.nivel]) {
-      acc[item.nivel] = [];
-    }
-    acc[item.nivel].push(item);
-    return acc;
-  }, {} as { [key: number]: MallaItem[] }) : {};
+  const mallaByLevel = mallaData
+    ? mallaData.reduce((acc, item) => {
+        if (!acc[item.nivel]) {
+          acc[item.nivel] = [];
+        }
+        acc[item.nivel].push(item);
+        return acc;
+      }, {} as { [key: number]: MallaItem[] })
+    : {};
 
   const cursosAprobadosOInscritos = new Set(
     (avanceData || [])
-      .filter(curso => curso.status === 'APROBADO' || curso.status === 'INSCRITO')
-      .map(curso => curso.course)
+      .filter(
+        (curso) => curso.status === "APROBADO" || curso.status === "INSCRITO"
+      )
+      .map((curso) => curso.course)
   );
 
   const getSemestresPendientes = (): number[] => {
     if (!mallaData) return [];
 
-    const levels = Object.keys(mallaByLevel).map(Number).sort((a, b) => a - b);
+    const levels = Object.keys(mallaByLevel)
+      .map(Number)
+      .sort((a, b) => a - b);
     const semestresPendientes: number[] = [];
 
     for (const level of levels) {
       const cursosDelNivel = mallaByLevel[level];
       const tienePendientes = cursosDelNivel.some(
-        curso => !cursosAprobadosOInscritos.has(curso.codigo)
+        (curso) => !cursosAprobadosOInscritos.has(curso.codigo)
       );
-      
+
       if (tienePendientes) {
         semestresPendientes.push(level);
       }
@@ -677,19 +863,33 @@ export default function MisProyecciones() {
 
   const getCursosPendientes = (level: number): MallaItem[] => {
     if (!mallaByLevel[level]) return [];
-    
+
     return mallaByLevel[level].filter(
-      curso => !cursosAprobadosOInscritos.has(curso.codigo)
+      (curso) => !cursosAprobadosOInscritos.has(curso.codigo)
     );
   };
 
-  const cursosPendientes = selectedLevel ? getCursosPendientes(selectedLevel) : [];
+  const cursosPendientes = selectedLevel
+    ? getCursosPendientes(selectedLevel)
+    : [];
 
   const toRoman = (num: number): string => {
     const romanNumerals: { [key: number]: string } = {
-      1: 'I', 2: 'II', 3: 'III', 4: 'IV', 5: 'V',
-      6: 'VI', 7: 'VII', 8: 'VIII', 9: 'IX', 10: 'X',
-      11: 'XI', 12: 'XII', 13: 'XIII', 14: 'XIV', 15: 'XV'
+      1: "I",
+      2: "II",
+      3: "III",
+      4: "IV",
+      5: "V",
+      6: "VI",
+      7: "VII",
+      8: "VIII",
+      9: "IX",
+      10: "X",
+      11: "XI",
+      12: "XII",
+      13: "XIII",
+      14: "XIV",
+      15: "XV",
     };
     return romanNumerals[num] || num.toString();
   };
@@ -698,7 +898,7 @@ export default function MisProyecciones() {
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
-    
+
     if (currentMonth < 6) {
       return `${currentYear}-2`;
     } else {
@@ -707,44 +907,53 @@ export default function MisProyecciones() {
   };
 
   const formatPeriodo = (periodo: string): string => {
-    const [year, term] = periodo.split('-');
-    const termRoman = term === '1' ? 'I' : 'II';
+    const [year, term] = periodo.split("-");
+    const termRoman = term === "1" ? "I" : "II";
     return `${year}-${termRoman}`;
   };
 
   const handleAddSemester = () => {
     if (!proyeccionActivaId) {
-      showNotification("Debes seleccionar o crear una proyección primero", "warning");
+      showNotification(
+        "Debes seleccionar o crear una proyección primero",
+        "warning"
+      );
       return;
     }
     setLastDeletedState(null);
     const newPeriodo = getNextSemester();
-    
+
     if (semestresProyectados.length > 0) {
-      const lastSemester = semestresProyectados[semestresProyectados.length - 1];
-      const [lastYear, lastTerm] = lastSemester.periodo.split('-');
-      
+      const lastSemester =
+        semestresProyectados[semestresProyectados.length - 1];
+      const [lastYear, lastTerm] = lastSemester.periodo.split("-");
+
       let nextYear = parseInt(lastYear);
-      let nextTerm = lastTerm === '1' ? '2' : '1';
-      
-      if (lastTerm === '2') {
+      let nextTerm = lastTerm === "1" ? "2" : "1";
+
+      if (lastTerm === "2") {
         nextYear += 1;
       }
-      
+
       const newId = `${nextYear}-${nextTerm}`;
-      const nuevosSemestres = [...semestresProyectados, {
-        id: newId,
-        periodo: newId,
-        cursos: []
-      }];
+      const nuevosSemestres = [
+        ...semestresProyectados,
+        {
+          id: newId,
+          periodo: newId,
+          cursos: [],
+        },
+      ];
       setSemestresProyectados(nuevosSemestres);
       guardarEnSessionStorage(nuevosSemestres);
     } else {
-      const nuevosSemestres = [{
-        id: newPeriodo,
-        periodo: newPeriodo,
-        cursos: []
-      }];
+      const nuevosSemestres = [
+        {
+          id: newPeriodo,
+          periodo: newPeriodo,
+          cursos: [],
+        },
+      ];
       setSemestresProyectados(nuevosSemestres);
       guardarEnSessionStorage(nuevosSemestres);
     }
@@ -754,8 +963,8 @@ export default function MisProyecciones() {
     if (semestresProyectados.length === 0) return;
 
     const semestresOrdenados = [...semestresProyectados].sort((a, b) => {
-      const [aYear, aTerm] = a.periodo.split('-').map(Number);
-      const [bYear, bTerm] = b.periodo.split('-').map(Number);
+      const [aYear, aTerm] = a.periodo.split("-").map(Number);
+      const [bYear, bTerm] = b.periodo.split("-").map(Number);
       if (aYear !== bYear) return aYear - bYear;
       return aTerm - bTerm;
     });
@@ -770,7 +979,7 @@ export default function MisProyecciones() {
       return;
     }
 
-    const nuevosSemestres = semestresProyectados.filter(s => s.id !== id);
+    const nuevosSemestres = semestresProyectados.filter((s) => s.id !== id);
     setSemestresProyectados(nuevosSemestres);
     guardarEnSessionStorage(nuevosSemestres);
   };
@@ -779,8 +988,8 @@ export default function MisProyecciones() {
     if (semestresProyectados.length === 0) return false;
 
     const semestresOrdenados = [...semestresProyectados].sort((a, b) => {
-      const [aYear, aTerm] = a.periodo.split('-').map(Number);
-      const [bYear, bTerm] = b.periodo.split('-').map(Number);
+      const [aYear, aTerm] = a.periodo.split("-").map(Number);
+      const [bYear, bTerm] = b.periodo.split("-").map(Number);
       if (aYear !== bYear) return aYear - bYear;
       return aTerm - bTerm;
     });
@@ -792,7 +1001,10 @@ export default function MisProyecciones() {
   const handleDragStart = (e: React.DragEvent, curso: MallaItem) => {
     if (!proyeccionActivaId) {
       e.preventDefault();
-      showNotification("Debes seleccionar o crear una proyección primero", "warning");
+      showNotification(
+        "Debes seleccionar o crear una proyección primero",
+        "warning"
+      );
       return;
     }
     setDraggedCourse(curso);
@@ -816,11 +1028,8 @@ export default function MisProyecciones() {
   };
 
   const tieneNumeroRomano = (nombre: string): boolean => {
-    const patterns = [
-      /\s+(I{1,3})\s/,
-      /\s+(I{1,3})$/,
-    ];
-    
+    const patterns = [/\s+(I{1,3})\s/, /\s+(I{1,3})$/];
+
     for (const pattern of patterns) {
       if (pattern.test(nombre)) {
         return true;
@@ -831,32 +1040,34 @@ export default function MisProyecciones() {
 
   const getNivelBase = (periodoActual: string): number => {
     if (!mallaData) return 1;
-    
+
     const cursosCompletados = new Set<string>();
     if (avanceData && avanceData.length > 0) {
       for (const curso of avanceData) {
-        if (curso.status === 'APROBADO' || curso.status === 'INSCRITO') {
+        if (curso.status === "APROBADO" || curso.status === "INSCRITO") {
           cursosCompletados.add(curso.course);
         }
       }
     }
-    
+
     const semestresOrdenados = [...semestresProyectados].sort((a, b) => {
-      const [aYear, aTerm] = a.periodo.split('-').map(Number);
-      const [bYear, bTerm] = b.periodo.split('-').map(Number);
+      const [aYear, aTerm] = a.periodo.split("-").map(Number);
+      const [bYear, bTerm] = b.periodo.split("-").map(Number);
       if (aYear !== bYear) return aYear - bYear;
       return aTerm - bTerm;
     });
-    
-    const indiceSemestreActual = semestresOrdenados.findIndex(s => s.periodo === periodoActual);
-    
+
+    const indiceSemestreActual = semestresOrdenados.findIndex(
+      (s) => s.periodo === periodoActual
+    );
+
     for (let i = 0; i < indiceSemestreActual; i++) {
       const semestre = semestresOrdenados[i];
       for (const curso of semestre.cursos) {
         cursosCompletados.add(curso.codigo);
       }
     }
-    
+
     const cursosPorNivel = mallaData.reduce((acc, curso) => {
       if (!acc[curso.nivel]) {
         acc[curso.nivel] = [];
@@ -864,77 +1075,86 @@ export default function MisProyecciones() {
       acc[curso.nivel].push(curso);
       return acc;
     }, {} as { [key: number]: MallaItem[] });
-    
-    const niveles = Object.keys(cursosPorNivel).map(Number).sort((a, b) => a - b);
+
+    const niveles = Object.keys(cursosPorNivel)
+      .map(Number)
+      .sort((a, b) => a - b);
     let nivelBase = 1;
-    
+
     for (const nivel of niveles) {
       const cursosDelNivel = cursosPorNivel[nivel];
-      const todosCompletos = cursosDelNivel.every(curso => cursosCompletados.has(curso.codigo));
-      
+      const todosCompletos = cursosDelNivel.every((curso) =>
+        cursosCompletados.has(curso.codigo)
+      );
+
       if (todosCompletos) {
         nivelBase = nivel + 1;
       } else {
         break;
       }
     }
-    
+
     return nivelBase;
   };
 
   const canEnrollInSemester = (
-    curso: MallaItem, 
+    curso: MallaItem,
     periodo: string,
     cursosDelSemestre: MallaItem[]
   ): { valid: boolean; reason?: string } => {
     if (tieneNumeroRomano(curso.asignatura)) {
-      const [, term] = periodo.split('-');
+      const [, term] = periodo.split("-");
       const semestreProyectado = parseInt(term, 10);
       const semestreDelAnio = getSemestreDelAnioPorNivel(curso.nivel);
 
       if (semestreProyectado !== semestreDelAnio) {
         return {
           valid: false,
-          reason: `El curso sólo se imparte en ${semestreDelAnio}° semestre.`
+          reason: `El curso sólo se imparte en ${semestreDelAnio}° semestre.`,
         };
       }
     }
 
     if (curso.prereq && curso.codigo !== "ECIN-00663") {
-      const prerequisitos = curso.prereq.split(',').map(p => p.trim()).filter(p => p);
+      const prerequisitos = curso.prereq
+        .split(",")
+        .map((p) => p.trim())
+        .filter((p) => p);
       const prerequisitosFaltantes: string[] = [];
-      
+
       const semestresOrdenados = [...semestresProyectados].sort((a, b) => {
-        const [aYear, aTerm] = a.periodo.split('-').map(Number);
-        const [bYear, bTerm] = b.periodo.split('-').map(Number);
+        const [aYear, aTerm] = a.periodo.split("-").map(Number);
+        const [bYear, bTerm] = b.periodo.split("-").map(Number);
         if (aYear !== bYear) return aYear - bYear;
         return aTerm - bTerm;
       });
-      
-      const indiceSemestreActual = semestresOrdenados.findIndex(s => s.periodo === periodo);
-      
+
+      const indiceSemestreActual = semestresOrdenados.findIndex(
+        (s) => s.periodo === periodo
+      );
+
       for (const prereq of prerequisitos) {
         if (!cursosAprobadosOInscritos.has(prereq)) {
           let encontradoEnProyecciones = false;
-          
+
           for (let i = 0; i < indiceSemestreActual; i++) {
-            if (semestresOrdenados[i].cursos.some(c => c.codigo === prereq)) {
+            if (semestresOrdenados[i].cursos.some((c) => c.codigo === prereq)) {
               encontradoEnProyecciones = true;
               break;
             }
           }
-          
+
           if (!encontradoEnProyecciones) {
-            const cursoPrereq = mallaData?.find(m => m.codigo === prereq);
+            const cursoPrereq = mallaData?.find((m) => m.codigo === prereq);
             prerequisitosFaltantes.push(cursoPrereq?.asignatura || prereq);
           }
         }
       }
-      
+
       if (prerequisitosFaltantes.length > 0) {
         return {
           valid: false,
-          reason: `Debes aprobar primero: ${prerequisitosFaltantes.join(', ')}`
+          reason: `Debes aprobar primero: ${prerequisitosFaltantes.join(", ")}`,
         };
       }
     }
@@ -942,22 +1162,25 @@ export default function MisProyecciones() {
     const nivelBase = getNivelBase(periodo);
     const DESPLAZAMIENTO = 2;
     const NIVEL_MAX_PERMITIDO = nivelBase + DESPLAZAMIENTO;
-    
+
     if (curso.nivel > NIVEL_MAX_PERMITIDO) {
       return {
         valid: false,
-        reason: `Dispersión: No puedes inscribir cursos de nivel ${curso.nivel} en el semestre que seleccionaste.`
+        reason: `Dispersión: No puedes inscribir cursos de nivel ${curso.nivel} en el semestre que seleccionaste.`,
       };
     }
 
     const MAX_CREDITOS_POR_SEMESTRE = 30;
-    const creditosActuales = cursosDelSemestre.reduce((sum, c) => sum + c.creditos, 0);
+    const creditosActuales = cursosDelSemestre.reduce(
+      (sum, c) => sum + c.creditos,
+      0
+    );
     const creditosTotales = creditosActuales + curso.creditos;
-    
+
     if (creditosTotales > MAX_CREDITOS_POR_SEMESTRE) {
       return {
         valid: false,
-        reason: `Excedes el límite de créditos. Este semestre tendría ${creditosTotales} créditos (máximo ${MAX_CREDITOS_POR_SEMESTRE}).`
+        reason: `Excedes el límite de créditos. Este semestre tendría ${creditosTotales} créditos (máximo ${MAX_CREDITOS_POR_SEMESTRE}).`,
       };
     }
 
@@ -970,47 +1193,56 @@ export default function MisProyecciones() {
 
     setLastDeletedState(null);
 
-    const targetSemester = semestresProyectados.find(s => s.id === semestreId);
+    const targetSemester = semestresProyectados.find(
+      (s) => s.id === semestreId
+    );
     if (!targetSemester) return;
 
     const validation = canEnrollInSemester(
-      draggedCourse, 
+      draggedCourse,
       targetSemester.periodo,
       targetSemester.cursos
     );
-    
+
     if (!validation.valid) {
       showNotification(
-        validation.reason || 'No se puede inscribir este curso en este semestre.',
+        validation.reason ||
+          "No se puede inscribir este curso en este semestre.",
         "warning"
       );
-      
-      const cursoExiste = targetSemester.cursos.some(c => c.codigo === draggedCourse.codigo);
-      
+
+      const cursoExiste = targetSemester.cursos.some(
+        (c) => c.codigo === draggedCourse.codigo
+      );
+
       if (!cursoExiste) {
         const advertenciaKey = `${semestreId}-${draggedCourse.codigo}`;
-        
-        const nuevosSemestresConAdvertencia = semestresProyectados.map(semestre => {
-          if (semestre.id === semestreId) {
-            return {
-              ...semestre,
-              cursos: [...semestre.cursos, draggedCourse]
-            };
+
+        const nuevosSemestresConAdvertencia = semestresProyectados.map(
+          (semestre) => {
+            if (semestre.id === semestreId) {
+              return {
+                ...semestre,
+                cursos: [...semestre.cursos, draggedCourse],
+              };
+            }
+            return semestre;
           }
-          return semestre;
-        });
+        );
         setSemestresProyectados(nuevosSemestresConAdvertencia);
         guardarEnSessionStorage(nuevosSemestresConAdvertencia);
-        
-        setCursosConAdvertencia(prev => new Set(prev).add(advertenciaKey));
-        
+
+        setCursosConAdvertencia((prev) => new Set(prev).add(advertenciaKey));
+
         setTimeout(() => {
-          setSemestresProyectados(prev => {
-            const nuevosSemestresSinAdvertencia = prev.map(semestre => {
+          setSemestresProyectados((prev) => {
+            const nuevosSemestresSinAdvertencia = prev.map((semestre) => {
               if (semestre.id === semestreId) {
                 return {
                   ...semestre,
-                  cursos: semestre.cursos.filter(c => c.codigo !== draggedCourse.codigo)
+                  cursos: semestre.cursos.filter(
+                    (c) => c.codigo !== draggedCourse.codigo
+                  ),
                 };
               }
               return semestre;
@@ -1018,27 +1250,29 @@ export default function MisProyecciones() {
             guardarEnSessionStorage(nuevosSemestresSinAdvertencia);
             return nuevosSemestresSinAdvertencia;
           });
-          
-          setCursosConAdvertencia(prev => {
+
+          setCursosConAdvertencia((prev) => {
             const nuevo = new Set(prev);
             nuevo.delete(advertenciaKey);
             return nuevo;
           });
         }, 3000);
       }
-      
+
       setDraggedCourse(null);
       setDragOverSemester(null);
       return;
     }
 
-    const nuevosSemestres = semestresProyectados.map(semestre => {
+    const nuevosSemestres = semestresProyectados.map((semestre) => {
       if (semestre.id === semestreId) {
-        const cursoExiste = semestre.cursos.some(c => c.codigo === draggedCourse.codigo);
+        const cursoExiste = semestre.cursos.some(
+          (c) => c.codigo === draggedCourse.codigo
+        );
         if (!cursoExiste) {
           return {
             ...semestre,
-            cursos: [...semestre.cursos, draggedCourse]
+            cursos: [...semestre.cursos, draggedCourse],
           };
         }
       }
@@ -1051,34 +1285,37 @@ export default function MisProyecciones() {
     setDragOverSemester(null);
   };
 
-  const handleRemoveCourseFromSemester = (semestreId: string, cursoCodigo: string) => {
+  const handleRemoveCourseFromSemester = (
+    semestreId: string,
+    cursoCodigo: string
+  ) => {
     const advertenciaKey = `${semestreId}-${cursoCodigo}`;
-    setCursosConAdvertencia(prev => {
+    setCursosConAdvertencia((prev) => {
       const nuevo = new Set(prev);
       nuevo.delete(advertenciaKey);
       return nuevo;
     });
-    
+
     const estadoAnterior = JSON.parse(JSON.stringify(semestresProyectados));
-    const nuevosSemestres = semestresProyectados.map(semestre => {
+    const nuevosSemestres = semestresProyectados.map((semestre) => {
       if (semestre.id === semestreId) {
         return {
           ...semestre,
-          cursos: semestre.cursos.filter(c => c.codigo !== cursoCodigo)
+          cursos: semestre.cursos.filter((c) => c.codigo !== cursoCodigo),
         };
       }
       return semestre;
     });
-    
+
     setLastDeletedState(estadoAnterior);
-    
+
     setSemestresProyectados(nuevosSemestres);
     guardarEnSessionStorage(nuevosSemestres);
   };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
         if (proyeccionActivaId && lastDeletedState) {
           setSemestresProyectados(lastDeletedState);
@@ -1088,9 +1325,9 @@ export default function MisProyecciones() {
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [lastDeletedState, proyeccionActivaId]);
 
@@ -1123,25 +1360,30 @@ export default function MisProyecciones() {
         />
       )}
       <h1 className={styles.title}>MIS PROYECCIONES</h1>
-      
+
       <div className={styles.selectorsRow}>
-        <CareerSelector 
+        <CareerSelector
           selectedCareer={selectedCareer}
           onCareerChange={handleCareerChange}
         />
-        
+
         <div className={styles.proyeccionesSelectorContainer}>
           <button
-            className={`${styles.proyeccionesSelectorButton} ${mostrarSelectorProyecciones ? styles.open : ''}`}
-            onClick={() => setMostrarSelectorProyecciones(!mostrarSelectorProyecciones)}
+            className={`${styles.proyeccionesSelectorButton} ${
+              mostrarSelectorProyecciones ? styles.open : ""
+            }`}
+            onClick={() =>
+              setMostrarSelectorProyecciones(!mostrarSelectorProyecciones)
+            }
           >
             <span className={styles.proyeccionButtonText}>
-              {proyeccionActivaId 
-                ? proyeccionesGuardadas.find(p => p.id === proyeccionActivaId)?.nombre || "Sin nombre"
+              {proyeccionActivaId
+                ? proyeccionesGuardadas.find((p) => p.id === proyeccionActivaId)
+                    ?.nombre || "Sin nombre"
                 : "Seleccionar proyección"}
             </span>
           </button>
-          
+
           {mostrarSelectorProyecciones && (
             <div className={styles.proyeccionesDropdown}>
               {proyeccionesGuardadas.length === 0 ? (
@@ -1152,16 +1394,24 @@ export default function MisProyecciones() {
                 proyeccionesGuardadas.map((proyeccion) => (
                   <div
                     key={proyeccion.id}
-                    className={`${styles.proyeccionItem} ${proyeccion.id === proyeccionActivaId ? styles.proyeccionItemActive : ''}`}
+                    className={`${styles.proyeccionItem} ${
+                      proyeccion.id === proyeccionActivaId
+                        ? styles.proyeccionItemActive
+                        : ""
+                    }`}
                     onClick={() => seleccionarProyeccion(proyeccion.id)}
                   >
                     <div className={styles.proyeccionItemContent}>
-                      <span className={styles.proyeccionNombre}>{proyeccion.nombre}</span>
+                      <span className={styles.proyeccionNombre}>
+                        {proyeccion.nombre}
+                      </span>
                       <span className={styles.proyeccionFecha}>
-                        {new Date(proyeccion.fechaModificacion).toLocaleDateString('es-ES', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric'
+                        {new Date(
+                          proyeccion.fechaModificacion
+                        ).toLocaleDateString("es-ES", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
                         })}
                       </span>
                     </div>
@@ -1173,7 +1423,16 @@ export default function MisProyecciones() {
                       }}
                       title="Eliminar proyección"
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
                         <path d="M3 6h18"></path>
                         <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
                         <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
@@ -1204,21 +1463,23 @@ export default function MisProyecciones() {
             {semestresPendientes.map((level) => (
               <button
                 key={level}
-                className={`${styles.levelButton} ${selectedLevel === level ? styles.levelButtonSelected : ''}`}
+                className={`${styles.levelButton} ${
+                  selectedLevel === level ? styles.levelButtonSelected : ""
+                }`}
                 onClick={() => setSelectedLevel(level)}
               >
                 {toRoman(level)}
               </button>
             ))}
           </div>
-          
+
           {selectedLevel && cursosPendientes.length > 0 && (
             <div className={styles.coursesContainer}>
               {cursosPendientes.map((curso) => {
-                const isInProjected = semestresProyectados.some(semestre =>
-                  semestre.cursos.some(c => c.codigo === curso.codigo)
+                const isInProjected = semestresProyectados.some((semestre) =>
+                  semestre.cursos.some((c) => c.codigo === curso.codigo)
                 );
-                
+
                 return (
                   <div
                     key={curso.codigo}
@@ -1227,12 +1488,17 @@ export default function MisProyecciones() {
                     onDragStart={(e) => handleDragStart(e, curso)}
                     style={{
                       opacity: isInProjected || !proyeccionActivaId ? 0.5 : 1,
-                      cursor: isInProjected || !proyeccionActivaId ? 'not-allowed' : 'grab'
+                      cursor:
+                        isInProjected || !proyeccionActivaId
+                          ? "not-allowed"
+                          : "grab",
                     }}
                   >
                     <div className={styles.courseCode}>{curso.codigo}</div>
                     <div className={styles.courseName}>{curso.asignatura}</div>
-                    <div className={styles.courseCredits}>{curso.creditos} SCT</div>
+                    <div className={styles.courseCredits}>
+                      {curso.creditos} SCT
+                    </div>
                   </div>
                 );
               })}
@@ -1270,10 +1536,20 @@ export default function MisProyecciones() {
                 {formatPeriodo(semestre.periodo)}
               </div>
               <div
-                className={`${styles.semesterCoursesContainer} ${dragOverSemester === semestre.id ? styles.dragOver : ''} ${!proyeccionActivaId ? styles.disabledDropZone : ''}`}
-                onDragOver={proyeccionActivaId ? (e) => handleDragOver(e, semestre.id) : undefined}
+                className={`${styles.semesterCoursesContainer} ${
+                  dragOverSemester === semestre.id ? styles.dragOver : ""
+                } ${!proyeccionActivaId ? styles.disabledDropZone : ""}`}
+                onDragOver={
+                  proyeccionActivaId
+                    ? (e) => handleDragOver(e, semestre.id)
+                    : undefined
+                }
                 onDragLeave={proyeccionActivaId ? handleDragLeave : undefined}
-                onDrop={proyeccionActivaId ? (e) => handleDrop(e, semestre.id) : undefined}
+                onDrop={
+                  proyeccionActivaId
+                    ? (e) => handleDrop(e, semestre.id)
+                    : undefined
+                }
               >
                 {semestre.cursos.length === 0 ? (
                   <div className={styles.emptySemester}>
@@ -1282,26 +1558,37 @@ export default function MisProyecciones() {
                 ) : (
                   semestre.cursos.map((curso) => {
                     const advertenciaKey = `${semestre.id}-${curso.codigo}`;
-                    const tieneAdvertencia = cursosConAdvertencia.has(advertenciaKey);
-                    
+                    const tieneAdvertencia =
+                      cursosConAdvertencia.has(advertenciaKey);
+
                     return (
-                      <div key={curso.codigo} className={styles.projectedCourseCard}>
+                      <div
+                        key={curso.codigo}
+                        className={styles.projectedCourseCard}
+                      >
                         {tieneAdvertencia ? (
-                          <div className={styles.warningIcon}>
-                            !
-                          </div>
+                          <div className={styles.warningIcon}>!</div>
                         ) : (
                           <button
                             className={styles.removeCourseButton}
-                            onClick={() => handleRemoveCourseFromSemester(semestre.id, curso.codigo)}
+                            onClick={() =>
+                              handleRemoveCourseFromSemester(
+                                semestre.id,
+                                curso.codigo
+                              )
+                            }
                             title="Eliminar curso"
                           >
                             ×
                           </button>
                         )}
                         <div className={styles.courseCode}>{curso.codigo}</div>
-                        <div className={styles.courseName}>{curso.asignatura}</div>
-                        <div className={styles.courseCredits}>{curso.creditos} SCT</div>
+                        <div className={styles.courseName}>
+                          {curso.asignatura}
+                        </div>
+                        <div className={styles.courseCredits}>
+                          {curso.creditos} SCT
+                        </div>
                       </div>
                     );
                   })
@@ -1309,7 +1596,7 @@ export default function MisProyecciones() {
               </div>
             </div>
           ))}
-          
+
           {proyeccionActivaId && (
             <div className={styles.addSemesterColumn}>
               <button
@@ -1346,4 +1633,3 @@ export default function MisProyecciones() {
     </div>
   );
 }
-
