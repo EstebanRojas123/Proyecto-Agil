@@ -19,8 +19,3 @@ export interface ProyeccionesData {
   proyeccionActiva: string | null;
 }
 
-export interface NotificationState {
-  message: string;
-  type: "success" | "error" | "info" | "warning";
-}
-

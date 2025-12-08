@@ -6,7 +6,6 @@ import databaseConfig from './config/database.config';
 import authConfig from './config/auth.config';
 import { validationSchema } from './config/validation.schema';
 
-import { DoggyModule } from './doggy/doggy.module';
 import { AuthModule } from './auth/auth.module';
 import { AvanceModule } from './avance/avance.module';
 import { ExternalApiModule } from './external/external-api.module';
@@ -33,7 +32,6 @@ import { ManualProjectionModule } from './manual-projection/manual-projection.mo
         synchronize: true,
       }),
     }),
-    DoggyModule,
     AuthModule,
     AvanceModule,
     ExternalApiModule,
