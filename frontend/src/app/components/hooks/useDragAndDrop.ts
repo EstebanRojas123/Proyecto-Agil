@@ -13,7 +13,6 @@ interface UseDragAndDropProps {
     periodo: string,
     cursosDelSemestre: MallaItem[]
   ) => { valid: boolean; reason?: string };
-  cursosConAdvertencia: Set<string>;
   setCursosConAdvertencia: React.Dispatch<React.SetStateAction<Set<string>>>;
   setLastDeletedState: React.Dispatch<
     React.SetStateAction<ProyectadoSemestre[] | null>
@@ -27,7 +26,6 @@ export const useDragAndDrop = ({
   setSemestresProyectados,
   proyeccionActivaId,
   canEnrollInSemester,
-  cursosConAdvertencia,
   setCursosConAdvertencia,
   setLastDeletedState,
   guardarEnSessionStorage,
@@ -62,14 +60,9 @@ export const useDragAndDrop = ({
 
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", curso.codigo);
-
-    const target = e.currentTarget as HTMLElement;
-    target.style.opacity = "0.5";
   };
 
   const handleDragEnd = (e: React.DragEvent) => {
-    const target = e.currentTarget as HTMLElement;
-    target.style.opacity = "1";
     setDraggedCourse(null);
     setDragOverSemester(null);
   };
