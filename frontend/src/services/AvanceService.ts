@@ -6,7 +6,7 @@ export interface Curso {
   nrc: string;
 }
 
-export interface AvanceResponse extends Array<Curso> {}
+export type AvanceResponse = Curso[];
 
 export interface MallaItem {
   codigo: string;
@@ -16,7 +16,7 @@ export interface MallaItem {
   prereq?: string;
 }
 
-export interface MallaResponse extends Array<MallaItem> {}
+export type MallaResponse = MallaItem[];
 
 export async function getAvanceData(rut: string, codigoCarrera: string, catalogo: string): Promise<AvanceResponse> {
   const response = await fetch(

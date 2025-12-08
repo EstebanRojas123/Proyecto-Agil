@@ -1,3 +1,5 @@
+"use client";
+
 import styles from "./MisProyecciones.module.css";
 
 interface AddSemesterButtonProps {

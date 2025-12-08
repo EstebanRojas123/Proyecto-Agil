@@ -134,15 +134,20 @@ export const useValidaciones = ({
           let encontradoEnProyecciones = false;
 
           for (let i = 0; i < indiceSemestreActual; i++) {
-            if (semestresOrdenados[i].cursos.some((c) => c.codigo === prereq)) {
-              encontradoEnProyecciones = true;
-              break;
+            const cursoEncontrado = semestresOrdenados[i].cursos.find((c) => c.codigo === prereq);
+            if (cursoEncontrado) {
+              if (cursoEncontrado.asignatura && cursoEncontrado.asignatura.trim() !== "") {
+                encontradoEnProyecciones = true;
+                break;
+              }
             }
           }
 
           if (!encontradoEnProyecciones) {
             const cursoPrereq = mallaData?.find((m) => m.codigo === prereq);
-            prerequisitosFaltantes.push(cursoPrereq?.asignatura || prereq);
+            if (cursoPrereq && cursoPrereq.asignatura && cursoPrereq.asignatura.trim() !== "") {
+              prerequisitosFaltantes.push(cursoPrereq.asignatura);
+            }
           }
         }
       }
@@ -167,11 +172,29 @@ export const useValidaciones = ({
     }
 
     const MAX_CREDITOS_POR_SEMESTRE = 30;
+    
+    const esPractica = (nombre: string): boolean => {
+      const nombreLower = nombre.toLowerCase();
+      return nombreLower.includes("práctica profesional") || 
+             nombreLower.includes("practica profesional") ||
+             nombreLower.includes("práctica pre-profesional") ||
+             nombreLower.includes("practica pre-profesional") ||
+             nombreLower.includes("práctica preprofesional") ||
+             nombreLower.includes("practica preprofesional");
+    };
+
     const creditosActuales = cursosDelSemestre.reduce(
-      (sum, c) => sum + c.creditos,
+      (sum, c) => {
+        if (esPractica(c.asignatura)) {
+          return sum;
+        }
+        return sum + c.creditos;
+      },
       0
     );
-    const creditosTotales = creditosActuales + curso.creditos;
+    
+    const creditosCursoActual = esPractica(curso.asignatura) ? 0 : curso.creditos;
+    const creditosTotales = creditosActuales + creditosCursoActual;
 
     if (creditosTotales > MAX_CREDITOS_POR_SEMESTRE) {
       return {
@@ -183,9 +206,54 @@ export const useValidaciones = ({
     return { valid: true };
   };
 
+  const validateAllProjection = (
+    semestresToValidate?: ProyectadoSemestre[]
+  ): {
+    valid: boolean;
+    violations: Array<{ curso: MallaItem; semestre: string; reason: string }>;
+  } => {
+    const violations: Array<{
+      curso: MallaItem;
+      semestre: string;
+      reason: string;
+    }> = [];
+
+    const semestresAValidar = semestresToValidate || semestresProyectados;
+    const semestresOrdenados = [...semestresAValidar].sort((a, b) => {
+      const [aYear, aTerm] = a.periodo.split("-").map(Number);
+      const [bYear, bTerm] = b.periodo.split("-").map(Number);
+      if (aYear !== bYear) return aYear - bYear;
+      return aTerm - bTerm;
+    });
+
+    for (const semestre of semestresOrdenados) {
+      for (const curso of semestre.cursos) {
+        const validation = canEnrollInSemester(
+          curso,
+          semestre.periodo,
+          semestre.cursos.filter((c) => c.codigo !== curso.codigo)
+        );
+
+        if (!validation.valid && validation.reason) {
+          violations.push({
+            curso,
+            semestre: semestre.periodo,
+            reason: validation.reason,
+          });
+        }
+      }
+    }
+
+    return {
+      valid: violations.length === 0,
+      violations,
+    };
+  };
+
   return {
     canEnrollInSemester,
     cursosAprobadosOInscritos,
+    validateAllProjection,
   };
 };
 

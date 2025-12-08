@@ -55,6 +55,18 @@ export default function MisProyecciones() {
     ProyectadoSemestre[] | null
   >(null);
 
+  const [lastDeletedCourse, setLastDeletedCourse] = useState<{
+    curso: MallaItem;
+    semestreId: string;
+  } | null>(null);
+
+  const [pendingRestore, setPendingRestore] = useState<{
+    curso: MallaItem;
+    semestreId: string;
+  } | null>(null);
+
+  const justRestoredRef = useRef(false);
+
   const [cursosConAdvertencia, setCursosConAdvertencia] = useState<Set<string>>(
     new Set()
   );
@@ -79,6 +91,8 @@ export default function MisProyecciones() {
     setSemestresProyectados([]);
     setHayCambiosSinGuardar(false);
     setLastDeletedState(null);
+    setLastDeletedCourse(null);
+    setPendingRestore(null);
     showNotification("Nueva proyección creada", "success");
   };
 
@@ -102,7 +116,7 @@ export default function MisProyecciones() {
           asignatura: curso.asignatura,
           creditos: curso.creditos,
           nivel: curso.nivel,
-          prereq: (curso as any).prereq ?? "",
+          prereq: curso.prereq ?? "",
         })),
       })),
     };
@@ -125,6 +139,74 @@ export default function MisProyecciones() {
         `No se puede guardar: los siguientes semestres están vacíos: ${periodosVacios}. Cada semestre debe tener al menos un curso.`,
         "warning"
       );
+      return;
+    }
+
+    const validation = validateAllProjection();
+    if (!validation.valid && validation.violations.length > 0) {
+      if (lastDeletedCourse) {
+        const cursosAfectados = validation.violations.map(
+          (v) => `${v.curso.codigo} (${v.curso.asignatura})`
+        );
+        const listaCursos =
+          cursosAfectados.length === 1
+            ? cursosAfectados[0]
+            : cursosAfectados.length === 2
+            ? `${cursosAfectados[0]} ni ${cursosAfectados[1]}`
+            : `${cursosAfectados.slice(0, -1).join(", ")}, ni ${cursosAfectados[cursosAfectados.length - 1]}`;
+
+        setPendingRestore({
+          curso: lastDeletedCourse.curso,
+          semestreId: lastDeletedCourse.semestreId,
+        });
+
+        const nuevasAdvertencias = new Set<string>();
+        validation.violations.forEach(
+          (violation: {
+            curso: MallaItem;
+            semestre: string;
+            reason: string;
+          }) => {
+            const semestreConViolacion = semestresProyectados.find(
+              (s) => s.periodo === violation.semestre
+            );
+            if (semestreConViolacion) {
+              const advertenciaKey = `${semestreConViolacion.id}-${violation.curso.codigo}`;
+              nuevasAdvertencias.add(advertenciaKey);
+            }
+          }
+        );
+        setCursosConAdvertencia(nuevasAdvertencias);
+
+        showNotification(
+          `No se puede guardar: ${listaCursos} si elimina el prerrequisito ${lastDeletedCourse.curso.codigo} (${lastDeletedCourse.curso.asignatura}).`,
+          "error"
+        );
+      } else {
+        const nuevasAdvertencias = new Set<string>();
+        validation.violations.forEach(
+          (violation: {
+            curso: MallaItem;
+            semestre: string;
+            reason: string;
+          }) => {
+            const semestreConViolacion = semestresProyectados.find(
+              (s) => s.periodo === violation.semestre
+            );
+            if (semestreConViolacion) {
+              const advertenciaKey = `${semestreConViolacion.id}-${violation.curso.codigo}`;
+              nuevasAdvertencias.add(advertenciaKey);
+            }
+          }
+        );
+        setCursosConAdvertencia(nuevasAdvertencias);
+
+        const primeraViolacion = validation.violations[0];
+        showNotification(
+          `No se puede guardar: ${primeraViolacion.curso.codigo} (${primeraViolacion.curso.asignatura}) en ${formatPeriodo(primeraViolacion.semestre)}: ${primeraViolacion.reason}${validation.violations.length > 1 ? ` (y ${validation.violations.length - 1} más)` : ""}`,
+          "error"
+        );
+      }
       return;
     }
 
@@ -212,6 +294,8 @@ export default function MisProyecciones() {
       guardarEnSessionStorage(proyeccionesValidadas);
       setHayCambiosSinGuardar(false);
       setLastDeletedState(null);
+      setLastDeletedCourse(null);
+      setPendingRestore(null);
 
       const sessionKey = getSessionStorageKey(selectedCareer);
       if (sessionKey) {
@@ -328,6 +412,8 @@ export default function MisProyecciones() {
 
       setHayCambiosSinGuardar(false);
       setLastDeletedState(null);
+      setLastDeletedCourse(null);
+      setPendingRestore(null);
 
       if (typeof window !== "undefined") {
         window.dispatchEvent(
@@ -379,6 +465,8 @@ export default function MisProyecciones() {
     }
     setProyeccionesGuardadas(data.proyecciones);
     setLastDeletedState(null);
+    setLastDeletedCourse(null);
+    setPendingRestore(null);
     showNotification("Proyección eliminada", "info");
   };
 
@@ -390,6 +478,8 @@ export default function MisProyecciones() {
       setProyeccionActivaId(null);
       setSemestresProyectados([]);
       setLastDeletedState(null);
+      setLastDeletedCourse(null);
+      setPendingRestore(null);
       isInitialLoadSessionRef.current = true;
       return;
     }
@@ -518,6 +608,58 @@ export default function MisProyecciones() {
     isInitialLoadSessionRef.current = true;
   }, [selectedCareer, proyeccionActivaId]);
 
+  const proyeccionActivaIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!proyeccionActivaId || !mallaData || !proyeccionesGuardadas.length) {
+      if (!proyeccionActivaId) {
+        setSemestresProyectados([]);
+      }
+      return;
+    }
+
+    if (proyeccionActivaIdRef.current === proyeccionActivaId) {
+      return;
+    }
+
+    const proyeccion = proyeccionesGuardadas.find(
+      (p) => p.id === proyeccionActivaId
+    );
+
+    if (proyeccion) {
+      proyeccionActivaIdRef.current = proyeccionActivaId;
+      const proyeccionesValidadas = proyeccion.semestresProyectados.map(
+        (semestre: ProyectadoSemestre) => ({
+          ...semestre,
+          cursos: semestre.cursos
+            .map((cursoGuardado: MallaItem) =>
+              mallaData.find((m) => m.codigo === cursoGuardado.codigo)
+            )
+            .filter(
+              (curso: MallaItem | undefined): curso is MallaItem =>
+                curso !== undefined
+            ),
+        })
+      );
+      setSemestresProyectados(proyeccionesValidadas);
+      setHayCambiosSinGuardar(false);
+      setLastDeletedState(null);
+      setLastDeletedCourse(null);
+      setPendingRestore(null);
+      isInitialLoadSessionRef.current = true;
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("proyecciones-cambios-sin-guardar", {
+            detail: { hayCambios: false },
+          })
+        );
+      }
+    } else {
+      setSemestresProyectados([]);
+    }
+  }, [proyeccionActivaId, proyeccionesGuardadas, mallaData]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
@@ -541,63 +683,63 @@ export default function MisProyecciones() {
   }, [mostrarSelectorProyecciones, user?.rut, selectedCareer]);
 
   useEffect(() => {
-    const handleGuardarYCerrar = () => {
+    const handleGuardarYCerrar = async () => {
       if (proyeccionActivaId) {
         const semestresVacios = semestresProyectados.filter(
           (semestre) => semestre.cursos.length === 0
         );
+        
+        let semestresAGuardar = semestresProyectados;
         if (semestresVacios.length > 0) {
-          const semestresConCursos = semestresProyectados.filter(
+          semestresAGuardar = semestresProyectados.filter(
             (semestre) => semestre.cursos.length > 0
           );
+        }
 
-          const storageKey = getStorageKey(selectedCareer);
-          const data = storageKey
-            ? cargarProyeccionesGuardadas(storageKey, generarIdProyeccion)
-            : null;
-          if (data) {
-            const indice = data.proyecciones.findIndex(
-              (p) => p.id === proyeccionActivaId
-            );
-            if (indice !== -1) {
-              data.proyecciones[indice].semestresProyectados =
-                semestresConCursos;
-              data.proyecciones[indice].fechaModificacion =
-                new Date().toISOString();
-              if (storageKey) {
-                guardarProyecciones(storageKey, data);
-              }
-
-              setSemestresProyectados(semestresConCursos);
-
-              const sessionKey = getSessionStorageKey(selectedCareer);
-              if (sessionKey) {
-                sessionStorage.removeItem(sessionKey);
-              }
+        const storageKey = getStorageKey(selectedCareer);
+        const data = storageKey
+          ? cargarProyeccionesGuardadas(storageKey, generarIdProyeccion) || {
+              proyecciones: [],
+              proyeccionActiva: null,
             }
-          }
-        } else {
-          const storageKey = getStorageKey(selectedCareer);
-          const data = storageKey
-            ? cargarProyeccionesGuardadas(storageKey, generarIdProyeccion)
-            : null;
-          if (data) {
-            const indice = data.proyecciones.findIndex(
-              (p) => p.id === proyeccionActivaId
-            );
-            if (indice !== -1) {
-              data.proyecciones[indice].semestresProyectados =
-                semestresProyectados;
-              data.proyecciones[indice].fechaModificacion =
-                new Date().toISOString();
-              if (storageKey) {
-                guardarProyecciones(storageKey, data);
-              }
+          : {
+              proyecciones: [],
+              proyeccionActiva: null,
+            };
+        
+        const indice = data.proyecciones.findIndex(
+          (p) => p.id === proyeccionActivaId
+        );
 
-              const sessionKey = getSessionStorageKey(selectedCareer);
-              if (sessionKey) {
-                sessionStorage.removeItem(sessionKey);
-              }
+        if (indice !== -1) {
+          data.proyecciones[indice].semestresProyectados = semestresAGuardar;
+          data.proyecciones[indice].fechaModificacion = new Date().toISOString();
+          if (storageKey) {
+            guardarProyecciones(storageKey, data);
+          }
+
+          setSemestresProyectados(semestresAGuardar);
+          setHayCambiosSinGuardar(false);
+
+          const sessionKey = getSessionStorageKey(selectedCareer);
+          if (sessionKey) {
+            sessionStorage.removeItem(sessionKey);
+          }
+
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("proyecciones-cambios-sin-guardar", {
+                detail: { hayCambios: false },
+              })
+            );
+          }
+
+          const payload = buildManualProjectionPayload();
+          if (payload) {
+            try {
+              await saveManualProjection(payload);
+            } catch (err) {
+              console.error("Error al guardar proyección en backend al cerrar sesión:", err);
             }
           }
         }
@@ -605,9 +747,49 @@ export default function MisProyecciones() {
     };
 
     const handleDescartarYCerrar = () => {
-      const sessionKey = getSessionStorageKey(selectedCareer);
-      if (sessionKey) {
-        sessionStorage.removeItem(sessionKey);
+      if (!proyeccionActivaId) return;
+
+      const storageKey = getStorageKey(selectedCareer);
+      const data = storageKey
+        ? cargarProyeccionesGuardadas(storageKey, generarIdProyeccion)
+        : null;
+      if (!data) return;
+
+      const proyeccion = data.proyecciones.find(
+        (p) => p.id === proyeccionActivaId
+      );
+      if (proyeccion && mallaData) {
+        const proyeccionesValidadas = proyeccion.semestresProyectados.map(
+          (semestre: ProyectadoSemestre) => ({
+            ...semestre,
+            cursos: semestre.cursos
+              .map((cursoGuardado: MallaItem) =>
+                mallaData.find((m) => m.codigo === cursoGuardado.codigo)
+              )
+              .filter(
+                (curso: MallaItem | undefined): curso is MallaItem =>
+                  curso !== undefined
+              ),
+          })
+        );
+        setSemestresProyectados(proyeccionesValidadas);
+        guardarEnSessionStorage(proyeccionesValidadas);
+        setHayCambiosSinGuardar(false);
+        setLastDeletedState(null);
+        setLastDeletedCourse(null);
+
+        const sessionKey = getSessionStorageKey(selectedCareer);
+        if (sessionKey) {
+          sessionStorage.removeItem(sessionKey);
+        }
+
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("proyecciones-cambios-sin-guardar", {
+              detail: { hayCambios: false },
+            })
+          );
+        }
       }
     };
 
@@ -646,6 +828,37 @@ export default function MisProyecciones() {
 
   const hideNotification = () => {
     setNotification(null);
+    
+    if (pendingRestore && lastDeletedState) {
+      const estadoARestaurar = JSON.parse(JSON.stringify(lastDeletedState));
+      setPendingRestore(null);
+      setLastDeletedCourse(null);
+      
+      setSemestresProyectados(estadoARestaurar);
+      guardarEnSessionStorage(estadoARestaurar);
+      setLastDeletedState(null);
+      
+      setTimeout(() => {
+        const validation = validateAllProjection(estadoARestaurar);
+        
+        const nuevasAdvertencias = new Set<string>();
+        if (!validation.valid && validation.violations.length > 0) {
+          validation.violations.forEach((violation) => {
+            const semestreConViolacion = estadoARestaurar.find(
+              (s: ProyectadoSemestre) => s.periodo === violation.semestre
+            );
+            if (semestreConViolacion) {
+              const advertenciaKey = `${semestreConViolacion.id}-${violation.curso.codigo}`;
+              nuevasAdvertencias.add(advertenciaKey);
+            }
+          });
+        }
+        
+        setCursosConAdvertencia(nuevasAdvertencias);
+      }, 200);
+    } else {
+      setCursosConAdvertencia(new Set<string>());
+    }
   };
 
   useEffect(() => {
@@ -753,7 +966,11 @@ export default function MisProyecciones() {
     }
   }, [selectedLevel, selectedCareer]);
 
-  const { canEnrollInSemester, cursosAprobadosOInscritos } = useValidaciones({
+  const {
+    canEnrollInSemester,
+    cursosAprobadosOInscritos,
+    validateAllProjection,
+  } = useValidaciones({
     mallaData,
     avanceData,
     semestresProyectados,
@@ -772,7 +989,6 @@ export default function MisProyecciones() {
     setSemestresProyectados,
     proyeccionActivaId,
     canEnrollInSemester,
-    cursosConAdvertencia,
     setCursosConAdvertencia,
     setLastDeletedState,
     guardarEnSessionStorage,
@@ -834,6 +1050,8 @@ export default function MisProyecciones() {
       return;
     }
     setLastDeletedState(null);
+    setLastDeletedCourse(null);
+    setPendingRestore(null);
     const newPeriodo = getNextSemester();
 
     if (semestresProyectados.length > 0) {
@@ -924,6 +1142,11 @@ export default function MisProyecciones() {
     });
 
     const estadoAnterior = JSON.parse(JSON.stringify(semestresProyectados));
+    const semestreOrigen = semestresProyectados.find((s) => s.id === semestreId);
+    const cursoEliminado = semestreOrigen?.cursos.find(
+      (c) => c.codigo === cursoCodigo
+    );
+
     const nuevosSemestres = semestresProyectados.map((semestre) => {
       if (semestre.id === semestreId) {
         return {
@@ -935,10 +1158,132 @@ export default function MisProyecciones() {
     });
 
     setLastDeletedState(estadoAnterior);
-
+    if (cursoEliminado) {
+      setLastDeletedCourse({
+        curso: cursoEliminado,
+        semestreId: semestreId,
+      });
+    }
     setSemestresProyectados(nuevosSemestres);
     guardarEnSessionStorage(nuevosSemestres);
+
+    setTimeout(() => {
+      const semestresOrdenados = [...nuevosSemestres].sort((a, b) => {
+        const [aYear, aTerm] = a.periodo.split("-").map(Number);
+        const [bYear, bTerm] = b.periodo.split("-").map(Number);
+        if (aYear !== bYear) return aYear - bYear;
+        return aTerm - bTerm;
+      });
+
+      const violations: Array<{
+        curso: MallaItem;
+        semestre: string;
+        reason: string;
+      }> = [];
+
+      for (const semestre of semestresOrdenados) {
+        for (const curso of semestre.cursos) {
+          const validation = canEnrollInSemester(
+            curso,
+            semestre.periodo,
+            semestre.cursos.filter((c) => c.codigo !== curso.codigo)
+          );
+
+          if (!validation.valid && validation.reason) {
+            violations.push({
+              curso,
+              semestre: semestre.periodo,
+              reason: validation.reason,
+            });
+          }
+        }
+      }
+
+      if (violations.length > 0 && cursoEliminado && semestreId) {
+        const primeraViolacion = violations[0];
+        showNotification(
+          `No se puede eliminar ${cursoEliminado.codigo} (${cursoEliminado.asignatura}): ${primeraViolacion.curso.codigo} (${primeraViolacion.curso.asignatura}) en ${formatPeriodo(primeraViolacion.semestre)} depende de este curso.${violations.length > 1 ? ` (y ${violations.length - 1} más)` : ""}`,
+          "warning"
+        );
+
+        const advertenciasTemporales = new Set<string>();
+        violations.forEach((violation) => {
+          const semestreConViolacion = nuevosSemestres.find(
+            (s) => s.periodo === violation.semestre
+          );
+          if (semestreConViolacion) {
+            const advertenciaKey = `${semestreConViolacion.id}-${violation.curso.codigo}`;
+            advertenciasTemporales.add(advertenciaKey);
+          }
+        });
+        setCursosConAdvertencia(advertenciasTemporales);
+
+        const semestresConCursoRestaurado = nuevosSemestres.map((semestre) => {
+          if (semestre.id === semestreId) {
+            const cursoYaExiste = semestre.cursos.some(
+              (c) => c.codigo === cursoEliminado.codigo
+            );
+            if (!cursoYaExiste) {
+              return {
+                ...semestre,
+                cursos: [...semestre.cursos, cursoEliminado],
+              };
+            }
+          }
+          return semestre;
+        });
+        setSemestresProyectados(semestresConCursoRestaurado);
+        guardarEnSessionStorage(semestresConCursoRestaurado);
+
+        const semestresOrdenados = [...semestresConCursoRestaurado].sort((a, b) => {
+          const [aYear, aTerm] = a.periodo.split("-").map(Number);
+          const [bYear, bTerm] = b.periodo.split("-").map(Number);
+          if (aYear !== bYear) return aYear - bYear;
+          return aTerm - bTerm;
+        });
+
+        const violationsAfterRestore: Array<{
+          curso: MallaItem;
+          semestre: string;
+          reason: string;
+        }> = [];
+
+        for (const semestre of semestresOrdenados) {
+          for (const curso of semestre.cursos) {
+            const validationResult = canEnrollInSemester(
+              curso,
+              semestre.periodo,
+              semestre.cursos.filter((c) => c.codigo !== curso.codigo)
+            );
+
+            if (!validationResult.valid && validationResult.reason) {
+              violationsAfterRestore.push({
+                curso,
+                semestre: semestre.periodo,
+                reason: validationResult.reason,
+              });
+            }
+          }
+        }
+
+        const advertenciasFinales = new Set<string>();
+        violationsAfterRestore.forEach((violation) => {
+          const semestreConViolacion = semestresConCursoRestaurado.find(
+            (s) => s.periodo === violation.semestre
+          );
+          if (semestreConViolacion) {
+            const advertenciaKey = `${semestreConViolacion.id}-${violation.curso.codigo}`;
+            advertenciasFinales.add(advertenciaKey);
+          }
+        });
+        setCursosConAdvertencia(advertenciasFinales);
+      } else {
+        setLastDeletedCourse(null);
+        setPendingRestore(null);
+      }
+    }, 100);
   };
+
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -948,6 +1293,8 @@ export default function MisProyecciones() {
           setSemestresProyectados(lastDeletedState);
           guardarEnSessionStorage(lastDeletedState);
           setLastDeletedState(null);
+          setLastDeletedCourse(null);
+          setPendingRestore(null);
         }
       }
     };
@@ -1030,6 +1377,7 @@ export default function MisProyecciones() {
                 const isInProjected = semestresProyectados.some((semestre) =>
                   semestre.cursos.some((c) => c.codigo === curso.codigo)
                 );
+                const isDragging = draggedCourse?.codigo === curso.codigo;
 
                 return (
                   <div
@@ -1039,7 +1387,7 @@ export default function MisProyecciones() {
                     onDragStart={(e) => handleDragStart(e, curso)}
                     onDragEnd={handleDragEnd}
                     style={{
-                      opacity: isInProjected || !proyeccionActivaId ? 0.5 : 1,
+                      opacity: isInProjected || !proyeccionActivaId || isDragging ? 0.5 : 1,
                       cursor:
                         isInProjected || !proyeccionActivaId
                           ? "not-allowed"
