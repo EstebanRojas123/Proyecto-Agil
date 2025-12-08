@@ -1,5 +1,3 @@
-// src/manual-projection/manual-projection.module.ts
-
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 

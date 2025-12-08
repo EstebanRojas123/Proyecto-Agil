@@ -1,5 +1,3 @@
-// src/manual-projection/entities/projected-semester.entity.ts
-
 import {
   Entity,
   Column,
@@ -16,7 +14,7 @@ export class ProjectedSemester {
   id: number;
 
   @Column()
-  periodo: string; // "2026-1"
+  periodo: string;
 
   @Column({ nullable: true })
   orden?: number;

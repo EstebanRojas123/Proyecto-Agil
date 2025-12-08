@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useCareerSelection } from "@/hooks/useCareerSelection";
+import { useCareerSelection } from "@/context/CareerSelectionContext";
 import { getAvanceData, getAutomaticProjection, AvanceResponse, Curso, ProyeccionSemestre, ProyeccionResponse } from "@/services/AvanceService";
 import CareerSelector from "./CareerSelector";
 import styles from "./HistorialCurricular.module.css";
@@ -83,7 +83,6 @@ export default function HistorialCurricular() {
     }
   };
 
-  // Convertir periodo de formato "YYYY-1" a "YYYY-I"
   const formatPeriodo = (periodo: string): string => {
     const [year, term] = periodo.split('-');
     const termMap: { [key: string]: string } = {
@@ -103,7 +102,6 @@ export default function HistorialCurricular() {
     }
     
     cursos.forEach(curso => {
-      // Convertir period (202410) a formato semestre (2024-I)
       const year = curso.period.substring(0, 4);
       const semester = curso.period.substring(4, 6);
       let semesterFormatted;
@@ -136,12 +134,10 @@ export default function HistorialCurricular() {
     return grouped;
   };
 
-  // Combinar historial y proyección
   const combineHistorialAndProjection = () => {
     const historialGrouped = groupCursosBySemester(avanceData || []);
     const combined: { [key: string]: (Curso | { course: string; nombre: string; status: string; period: string; nrc: string })[] } = { ...historialGrouped };
 
-    // Agregar semestres proyectados
     if (proyeccionData) {
       proyeccionData.forEach(semestre => {
         const periodoKey = formatPeriodo(semestre.periodo);
@@ -149,9 +145,7 @@ export default function HistorialCurricular() {
           combined[periodoKey] = [];
         }
         
-        // Convertir ramos proyectados al formato Curso
         semestre.ramos.forEach(ramo => {
-          // Convertir "2024-1" a "202410", "2024-2" a "202420", etc.
           const [year, term] = semestre.periodo.split('-');
           const termCode = term === '1' ? '10' : term === '2' ? '20' : term === '15' ? '15' : term === '25' ? '25' : term;
           const periodCode = `${year}${termCode}`;
@@ -161,7 +155,7 @@ export default function HistorialCurricular() {
             nombre: ramo.nombre,
             status: ramo.estado as 'APROBADO' | 'REPROBADO' | 'INSCRITO' | 'PROYECTADO',
             period: periodCode,
-            nrc: '' // Los cursos proyectados no tienen NRC
+            nrc: '' // Los ramos en formato de proyectados no tienen NRC porque no se han inscrito obviamente
           });
         });
       });
@@ -205,18 +199,15 @@ export default function HistorialCurricular() {
 
   const cursosGrouped = combineHistorialAndProjection();
   
-  // Función para ordenar semestres cronológicamente
   const sortSemesters = (semesters: string[]) => {
     return semesters.sort((a, b) => {
       const [yearA, semesterA] = a.split('-');
       const [yearB, semesterB] = b.split('-');
       
-      // Primero comparar años
       if (yearA !== yearB) {
         return parseInt(yearA) - parseInt(yearB);
       }
       
-      // Si es el mismo año, ordenar por semestre
       const semesterOrder = { 'I': 1, 'W': 2, 'II': 3, 'V': 4 };
       const orderA = semesterOrder[semesterA as keyof typeof semesterOrder] || 5;
       const orderB = semesterOrder[semesterB as keyof typeof semesterOrder] || 5;
@@ -227,7 +218,6 @@ export default function HistorialCurricular() {
   
   const semestres = sortSemesters(Object.keys(cursosGrouped));
 
-  // Función para verificar si un semestre tiene cursos inscritos
   const hasInscritos = (semestre: string): boolean => {
     const cursos = cursosGrouped[semestre] || [];
     return cursos.some(curso => curso.status === 'INSCRITO');

@@ -1,4 +1,3 @@
-// src/external/external-api.service.ts
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom, map, retry } from 'rxjs';

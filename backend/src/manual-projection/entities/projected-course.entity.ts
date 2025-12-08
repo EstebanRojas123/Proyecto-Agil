@@ -1,5 +1,3 @@
-// src/manual-projection/entities/projected-course.entity.ts
-
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
 import { ProjectedSemester } from './projected-semester.entity';
 

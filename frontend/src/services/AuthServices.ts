@@ -31,7 +31,6 @@ export async function loginService(email: string, password: string) {
     });
 
     if (!answer.ok) {
-      // Intentar obtener el mensaje de error del backend
       const errorMessage =
         data.message ||
         data.error ||
@@ -62,7 +61,6 @@ export async function loginService(email: string, password: string) {
       stack: error instanceof Error ? error.stack : undefined
     });
 
-    // Si es un error de red o conexión
     if (error instanceof TypeError && error.message.includes("fetch")) {
       console.error('[AuthService] Error de conexión - El backend no está disponible');
       throw new Error(
@@ -70,12 +68,10 @@ export async function loginService(email: string, password: string) {
       );
     }
 
-    // Si ya es un Error con mensaje, re-lanzarlo
     if (error instanceof Error) {
       throw error;
     }
 
-    // Error desconocido
     console.error('[AuthService] Error desconocido:', error);
     throw new Error(
       "Ocurrió un error inesperado al intentar iniciar sesión. Por favor, intenta nuevamente."

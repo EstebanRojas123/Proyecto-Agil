@@ -1,5 +1,3 @@
-// src/manual-projection/manual-projection.controller.ts
-
 import { Controller, Post, Body, Get, Param, Delete } from '@nestjs/common';
 
 import { ManualProjectionService } from './manual-projection.service';

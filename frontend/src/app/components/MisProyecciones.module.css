@@ -138,6 +138,12 @@
   font-size: 0.95rem;
 }
 
+.proyeccionId {
+  font-size: 0.7rem;
+  color: #9ca3af;
+  font-family: monospace;
+}
+
 .proyeccionFecha {
   font-size: 0.75rem;
   color: #6b7280;

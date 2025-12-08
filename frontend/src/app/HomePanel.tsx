@@ -64,7 +64,6 @@ export default function HomePanel() {
   };
 
   const handleLogout = () => {
-    // Si hay cambios sin guardar en proyecciones, mostrar confirmación
     if (hayCambiosSinGuardar && activeSection === 'proyecciones') {
       setMostrarConfirmacionLogout(true);
     } else {
@@ -73,17 +72,14 @@ export default function HomePanel() {
   };
 
   const confirmarLogoutGuardar = () => {
-    // Disparar evento para que MisProyecciones guarde antes de cerrar
     window.dispatchEvent(new CustomEvent('proyecciones-guardar-y-cerrar'));
     setMostrarConfirmacionLogout(false);
-    // Esperar un momento para que se guarde antes de cerrar sesión
     setTimeout(() => {
       logout();
     }, 300);
   };
 
   const confirmarLogoutDescartar = () => {
-    // Disparar evento para limpiar sessionStorage
     window.dispatchEvent(new CustomEvent('proyecciones-descartar-y-cerrar'));
     setMostrarConfirmacionLogout(false);
     logout();
@@ -95,11 +91,8 @@ export default function HomePanel() {
 
   const extractNameFromEmail = (email: string | undefined): string => {
     if (!email) return 'Usuario';
+        const beforeAt = email.split('@')[0];
     
-    // Obtener la parte antes del @
-    const beforeAt = email.split('@')[0];
-    
-    // Si hay un punto, separar en nombre y apellido
     if (beforeAt.includes('.')) {
       const parts = beforeAt.split('.');
       const nombre = parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase();
@@ -107,7 +100,6 @@ export default function HomePanel() {
       return apellido ? `${nombre} ${apellido}` : nombre;
     }
     
-    // Si no hay punto, capitalizar la primera letra
     return beforeAt.charAt(0).toUpperCase() + beforeAt.slice(1).toLowerCase();
   };
 
@@ -132,7 +124,6 @@ export default function HomePanel() {
         />
       )}
       <div className={styles.container}>
-        {/* Aside lateral izquierdo */}
         <aside className={styles.aside}>
         <div className={styles.asideTop}>
           <div className={styles.logoContainer}>
@@ -186,7 +177,6 @@ export default function HomePanel() {
         </div>
       </aside>
 
-      {/* Contenido principal */}
       <main className={styles.main}>
         {activeSection === 'malla' && <MallaCurricular />}
         {activeSection === 'historial' && <HistorialCurricular />}

@@ -7,9 +7,9 @@ const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
-// Este shape es el que espera tu backend (según el ejemplo que mandaste)
 export interface ManualProjectionPayload {
-  estudiante: string; // rut
+  Carrera: string;
+  estudiante: string;
   proyeccionActivaId: string;
   semestresProyectados: {
     id: string;
@@ -24,7 +24,6 @@ export interface ManualProjectionPayload {
   }[];
 }
 
-// POST /manual-projections
 export const saveManualProjection = async (
   payload: ManualProjectionPayload
 ) => {
@@ -32,19 +31,16 @@ export const saveManualProjection = async (
   return data;
 };
 
-// GET /manual-projections/user/:rut
 export const getUserManualProjections = async (rut: string) => {
   const { data } = await api.get(`/manual-projections/user/${rut}`);
   return data;
 };
 
-// GET /manual-projections/:id
 export const getManualProjectionById = async (id: string) => {
   const { data } = await api.get(`/manual-projections/${id}`);
   return data;
 };
 
-// DELETE /manual-projections/:id
 export const deleteManualProjectionById = async (id: string) => {
   const { data } = await api.delete(`/manual-projections/${id}`);
   return data;

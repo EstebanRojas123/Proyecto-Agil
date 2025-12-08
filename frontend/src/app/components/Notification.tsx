@@ -23,10 +23,8 @@ export default function Notification({
     if (isClosing) return;
     setIsClosing(true);
     
-    // Esperar a que termine la animación de salida antes de llamar a onClose
     const notification = notificationRef.current;
     if (notification) {
-      // Pequeño delay para asegurar que la clase se aplique
       setTimeout(() => {
         const handleAnimationEnd = () => {
           onClose();
@@ -34,7 +32,6 @@ export default function Notification({
         notification.addEventListener('animationend', handleAnimationEnd, { once: true });
       }, 10);
     } else {
-      // Fallback si no hay referencia
       setTimeout(() => onClose(), 300);
     }
   };
@@ -43,14 +40,12 @@ export default function Notification({
     const progressBar = progressBarRef.current;
     if (!progressBar) return;
 
-    // Cerrar cuando la animación de la barra termine
     const handleAnimationEnd = () => {
       handleClose();
     };
 
     progressBar.addEventListener('animationend', handleAnimationEnd);
 
-    // Fallback: también usar setTimeout por si acaso
     const timer = setTimeout(() => {
       handleClose();
     }, duration);

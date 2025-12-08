@@ -1,5 +1,3 @@
-// src/manual-projection/entities/manual-projection.entity.ts
-
 import {
   Entity,
   PrimaryColumn,
@@ -14,7 +12,10 @@ import { ProjectedSemester } from './projected-semester.entity';
 @Entity('manual_projections')
 export class ManualProjection {
   @PrimaryColumn()
-  id: string; // proy_...
+  id: string;
+
+  @Column()
+  Carrera: string; // (código carr.)
 
   @CreateDateColumn()
   fechaCreacion: Date;

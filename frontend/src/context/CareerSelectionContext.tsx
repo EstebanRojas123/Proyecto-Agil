@@ -22,7 +22,6 @@ export function CareerSelectionProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [selectedCareer, setSelectedCareer] = useState<Career | null>(null);
 
-  // Cargar desde localStorage al montar
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -37,21 +36,18 @@ export function CareerSelectionProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Inicializar con la carrera más reciente si no hay selección guardada
   useEffect(() => {
     if (!user) return;
     
-    // Verificar si la carrera seleccionada actual aún existe en las carreras del usuario
     if (selectedCareer) {
       const careerExists = user.carreras.some(
         c => c.codigo === selectedCareer.codigo && c.catalogo === selectedCareer.catalogo
       );
       if (careerExists) {
-        return; // La carrera seleccionada aún es válida
+        return;
       }
     }
 
-    // Si no hay selección o la carrera seleccionada ya no existe, usar la más reciente
     const mostRecentCareer = findMostRecentCareer(user.carreras);
     if (mostRecentCareer) {
       setSelectedCareer(mostRecentCareer);
@@ -59,8 +55,7 @@ export function CareerSelectionProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(mostRecentCareer));
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]); // selectedCareer se verifica dentro pero no se incluye en deps para evitar loops
+  }, [user]);
 
   const handleCareerChange = (career: Career | null) => {
     setSelectedCareer(career);

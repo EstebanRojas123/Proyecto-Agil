@@ -1,28 +1,24 @@
-// src/projection/types.ts
-export type PeriodoRaw = string; // ej: "202320"
+export type PeriodoRaw = string; // onda -> 202320
 
-// ---- API: Malla ----
-export interface MallaItem {
-  codigo: string; // "DCCB-00106"
-  asignatura: string; // "Cálculo I"
-  creditos: number; // 6
-  nivel: number; // 1..N
-  prereq?: string; // CSV de codigos o vacío
+export interface MallaItem { // API de la malla curricular qye da el cod de ramo, nombre, creditos, nivel y los prerequisitos
+  codigo: string;
+  asignatura: string;
+  creditos: number;
+  nivel: number;
+  prereq?: string;
 }
 
-// ---- API: Avance ----
 export type AvanceEstado = 'APROBADO' | 'REPROBADO' | 'INSCRITO';
 export interface AvanceItem {
   nrc: string;
-  period: PeriodoRaw; // "202320"
-  student: string; // rut sin dv o similar
-  course: string; // "ECIN-00600"
+  period: PeriodoRaw;
+  student: string;
+  course: string;
   excluded: boolean;
-  inscriptionType: string; // "REGULAR"
-  status: AvanceEstado; // APROBADO | REPROBADO | INSCRITO
+  inscriptionType: string;
+  status: AvanceEstado;
 }
 
-// ---- Salida final para el front ----
 export interface ProyeccionRamo {
   codigo: string;
   nombre: string;
@@ -33,49 +29,41 @@ export interface ProyeccionRamo {
 }
 
 export interface ProyeccionSemestre {
-  periodo: string; // "2023-1", "2023-2", "2023-15"
+  periodo: string; // el formato es de tipo 2023-1,2023-2, 2023-15 etc
   ramos: ProyeccionRamo[];
 }
 
 export interface ProyeccionResumen {
   creditosTotales: number;
   creditosAprobados: number;
-  porcentaje: number; // 0..100 (ej: 52.3)
+  porcentaje: number;
 }
 
 export interface ProyeccionResponse {
   resumen: ProyeccionResumen;
   semestres: ProyeccionSemestre[];
   pendientes: {
-    // ramos sin registro en avance
     nivel: number;
     ramos: ProyeccionRamo[];
   }[];
 }
 
-// =======================
-// 👇 Alias y tipos internos para el algoritmo automático
-// =======================
-
-// Alias para usar el mismo shape internamente
 export type Ramo = ProyeccionRamo;
 export type SemestrePlaneado = ProyeccionSemestre;
 
-// Parámetros de ambos endpoints
 export interface AlumnoParams {
   rut: string;
   codCarrera: string;
   catalogo: string;
 }
 
-// Historial por semestre (estados reales del avance)
 export interface SemestreHistorial {
-  periodo: string; // "YYYY-1" | "YYYY-2" | "YYYY-15"
+  periodo: string;
   ramos: (ProyeccionRamo & { estado: AvanceEstado })[];
 }
 
-// Estructura completa que entrega el endpoint base /projection
-export interface RawProjectionResponse {
+export interface RawProjectionResponse { // Así etá la structura completa que entrega el endpoint base /projection
+
   resumen: ProyeccionResumen;
   semestres: SemestreHistorial[];
   pendientes: {
@@ -84,7 +72,6 @@ export interface RawProjectionResponse {
   }[];
 }
 
-// Base normalizada para correr el algoritmo
 export interface NormalizedBase {
   semestres: SemestreHistorial[];
   aprobadosSet: Set<string>;
@@ -93,5 +80,4 @@ export interface NormalizedBase {
   nivelBase: number;
 }
 
-// Constante de negocio
 export const MAX_CREDITOS_POR_SEMESTRE = 30 as const;

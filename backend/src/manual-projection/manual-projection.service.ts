@@ -38,7 +38,6 @@ export class ManualProjectionService {
       const userRepo = manager.getRepository(User);
       const projectionRepo = manager.getRepository(ManualProjection);
 
-      // 1) Buscar o crear usuario por rut ------------------------------
       let user = await userRepo.findOne({
         where: { rut: dto.estudiante },
       });
@@ -48,19 +47,17 @@ export class ManualProjectionService {
         user = await userRepo.save(user);
       }
 
-      // 2) Crear la proyección -----------------------------------------
       const projection = new ManualProjection();
       projection.id = dto.proyeccionActivaId;
+      projection.Carrera = dto.Carrera;
       projection.user = user;
 
-      // 3) Crear semestres ---------------------------------------------
       projection.semestres = dto.semestresProyectados.map(
         (semDto: CreateProjectedSemesterDto, index: number) => {
           const semestre = new ProjectedSemester();
           semestre.periodo = semDto.periodo;
           semestre.orden = index + 1;
 
-          // 4) Crear cursos -------------------------------------------
           semestre.cursos = semDto.cursos.map(
             (courseDto: CreateProjectedCourseDto) => {
               const course = new ProjectedCourse();
@@ -77,7 +74,6 @@ export class ManualProjectionService {
         },
       );
 
-      // 5) Guardar todo en cascada -------------------------------
       const saved = await projectionRepo.save(projection);
       return saved;
     });

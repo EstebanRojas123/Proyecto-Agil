@@ -3,6 +3,7 @@ POST http://localhost:3000/manual-projections
 Content-Type: application/json
 
 {
+  "Carrera": "ITI",
   "estudiante": "12345678-k",
   "proyeccionActivaId": "proy_2026_ABC123_sameUser",
   "semestresProyectados": [
@@ -12,7 +13,7 @@ Content-Type: application/json
       "cursos": [
         {
           "codigo": "ECIN-00600",
-          "asignatura": "Minería de Datos",
+          "asignatura": "Pescados II",
           "creditos": 5,
           "nivel": 6,
           "prereq": "ECIN-00462"
@@ -45,7 +46,7 @@ Content-Type: application/json
 
 
 ### Obtener todas las proyecciones de un usuario
-GET http://localhost:3000/manual-projections/user/12345678-k
+GET http://localhost:3000/manual-projections/user/333333333
 
 
 ### Obtener una proyección específica por id
@@ -53,4 +54,4 @@ GET http://localhost:3000/manual-projections/proy_1763513493468_hr171kro6
 
 
 ### Eliminar una proyección por id
-DELETE http://localhost:3000/manual-projections/proy_1763513493468_hr171kro6
+DELETE http://localhost:3000/manual-projections/proy_2026_ABC123_sameUser

@@ -86,8 +86,7 @@ export function findMostRecentCareer(carreras: { codigo: string; nombre: string;
     return null;
   }
 
-  // Carrera más reciente x el año
-  const mostRecent = carreras.reduce((latest, current) => {
+  const mostRecent = carreras.reduce((latest, current) => {   // Carrera más reciente x año
     const currentYear = parseInt(current.catalogo.substring(0, 4));
     const latestYear = parseInt(latest.catalogo.substring(0, 4));
     

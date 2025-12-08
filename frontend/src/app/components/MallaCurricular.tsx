@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useCareerSelection } from "@/hooks/useCareerSelection";
+import { useCareerSelection } from "@/context/CareerSelectionContext";
 import CareerSelector from "./CareerSelector";
 import { getMallaData, MallaItem } from "@/services/AvanceService";
 import styles from "./MallaCurricular.module.css";
@@ -20,8 +20,6 @@ export default function MallaCurricular() {
       try {
         setLoading(true);
         setError(null);
-
-        // Obtener datos de malla para la carrera seleccionada
         const data = await getMallaData(selectedCareer.codigo, selectedCareer.catalogo);
         setMallaData(data);
       } catch (err) {
@@ -35,7 +33,6 @@ export default function MallaCurricular() {
     fetchMallaData();
   }, [user, selectedCareer]);
 
-  // Agrupación por niveles (semestres)
   const mallaByLevel = mallaData ? mallaData.reduce((acc, item) => {
     if (!acc[item.nivel]) {
       acc[item.nivel] = [];
@@ -46,7 +43,6 @@ export default function MallaCurricular() {
 
   const levels = Object.keys(mallaByLevel).map(Number).sort((a, b) => a - b);
 
-  // Convertir número a romano
   const toRoman = (num: number): string => {
     const romanNumerals: { [key: number]: string } = {
       1: 'I', 2: 'II', 3: 'III', 4: 'IV', 5: 'V',
