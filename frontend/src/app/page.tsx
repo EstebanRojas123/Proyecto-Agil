@@ -5,12 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import HomePanel from "./HomePanel";
 import Notification from "./components/Notification";
 import { EmailIcon, LockIcon, HourglassIcon, LoginIcon } from "./components/Icons";
-
-interface NotificationState {
-  message: string;
-  type: "success" | "error" | "info";
-  duration?: number;
-}
+import { NotificationState } from "@/types/notification.types";
 
 export default function Home() {
   const { user, login } = useAuth();

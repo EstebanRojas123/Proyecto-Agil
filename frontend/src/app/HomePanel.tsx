@@ -6,11 +6,7 @@ import MallaCurricular from "./components/MallaCurricular";
 import MisProyecciones from "./components/MisProyecciones";
 import Notification from "./components/Notification";
 import styles from "./components/HomePanel.module.css";
-
-interface NotificationState {
-  message: string;
-  type: "success" | "error" | "info";
-}
+import { NotificationState } from "@/types/notification.types";
 
 type MenuSection = 'malla' | 'historial' | 'proyecciones';
 
@@ -51,12 +47,6 @@ export default function HomePanel() {
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY_ACTIVE_SECTION, section);
     }
-  };
-  const showNotification = (
-    message: string,
-    type: "success" | "error" | "info"
-  ) => {
-    setNotification({ message, type });
   };
 
   const hideNotification = () => {

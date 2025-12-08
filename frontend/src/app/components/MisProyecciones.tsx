@@ -230,31 +230,6 @@ export default function MisProyecciones() {
     }
   };
 
-  const verificarCambiosSinGuardar = (): boolean => {
-    if (!proyeccionActivaId) return false;
-
-    const storageKey = getStorageKey(selectedCareer);
-    const data = storageKey
-      ? cargarProyeccionesGuardadas(storageKey, generarIdProyeccion)
-      : null;
-    if (!data) return false;
-
-    const proyeccionGuardada = data.proyecciones.find(
-      (p) => p.id === proyeccionActivaId
-    );
-    if (!proyeccionGuardada) return false;
-
-    const guardados = JSON.stringify(proyeccionGuardada.semestresProyectados);
-    const actuales = JSON.stringify(semestresProyectados);
-
-    return guardados !== actuales;
-  };
-
-  const guardarAlCerrarSesion = () => {
-    if (proyeccionActivaId && hayCambiosSinGuardar) {
-      guardarProyeccionActual();
-    }
-  };
 
   useEffect(() => {
     if (proyeccionActivaId) {
