@@ -2,6 +2,6 @@
 GET http://localhost:3000/projection?rut=333333333&codcarrera=8266&catalogo=202410
 Accept: application/json
 
-### Obtener proyección automática desde el siguiente semestre
-GET http://localhost:3000/projection/automatic-projection?rut=333333333&codcarrera=8266&catalogo=202410
+### Obtener malla curricular | codCarrera, catalogo
+GET http://localhost:3000/avance/malla?codCarrera=8266&catalogo=202410
 Accept: application/json

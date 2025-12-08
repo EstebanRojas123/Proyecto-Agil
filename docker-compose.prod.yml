@@ -1,0 +1,66 @@
+# Docker Compose para producción (sin devtools)
+version: "3.9"
+
+services:
+  # Base de datos PostgreSQL
+  db:
+    image: postgres:15
+    container_name: postgres_db_prod
+    restart: always
+    environment:
+      POSTGRES_USER: nestuser
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: proyecto-agil
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data_prod:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  # Backend NestJS en modo producción
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend_app_prod
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=nestuser
+      - DB_PASSWORD=12345
+      - DB_NAME=proyecto-agil
+      - PORT=3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  # Frontend Next.js en modo producción
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend_app_prod
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
+    ports:
+      - "3001:3001"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+volumes:
+  db_data_prod:
+
+networks:
+  app-network:
+    driver: bridge
+

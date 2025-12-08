@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import databaseConfig from './config/database.config';
+import authConfig from './config/auth.config';
 import { validationSchema } from './config/validation.schema';
 
 import { DoggyModule } from './doggy/doggy.module';
@@ -10,12 +11,13 @@ import { AuthModule } from './auth/auth.module';
 import { AvanceModule } from './avance/avance.module';
 import { ExternalApiModule } from './external/external-api.module';
 import { ProjectionModule } from './projection/projection.module';
+import { ManualProjectionModule } from './manual-projection/manual-projection.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig],
+      load: [databaseConfig, authConfig],
       validationSchema,
     }),
     TypeOrmModule.forRootAsync({
@@ -36,6 +38,7 @@ import { ProjectionModule } from './projection/projection.module';
     AvanceModule,
     ExternalApiModule,
     ProjectionModule,
+    ManualProjectionModule,
   ],
 })
 export class AppModule {}

@@ -1,4 +1,3 @@
-// src/projection/projection.service.ts
 import { Injectable } from '@nestjs/common';
 import { ExternalApiService } from '../external/external-api.service';
 import {
@@ -10,13 +9,9 @@ import {
 } from './types';
 
 function parsePeriodoLabel(period: string): string {
-  const year = period.slice(0, 4); // saca los primeros 4 caracteres (el año)
-  const code = period.slice(4); // saca lo que queda (el código del semestre)
-
-  // Si es "10" lo interpretamos como primer semestre, si es "20" como segundo semestre
+  const year = period.slice(0, 4);
+  const code = period.slice(4);
   const term = code === '10' ? '1' : code === '20' ? '2' : code;
-
-  // Template literal correcto
   return `${year}-${term}`;
 }
 
@@ -48,7 +43,6 @@ export class ProjectionService {
 
     const periodoMap = new Map<string, ProyeccionRamo[]>();
 
-    // === Ramos cursados o inscritos ===
     for (const a of avance) {
       const periodo = parsePeriodoLabel(a.period);
       const def = mallaByCode.get(a.course);
@@ -62,14 +56,13 @@ export class ProjectionService {
         nivel: def.nivel,
         prerequisitos: def.prereq
           ? def.prereq.split(',').map((p) => p.trim())
-          : [], // ✅ Agregamos los prerequisitos
+          : [],
       };
 
       if (!periodoMap.has(periodo)) periodoMap.set(periodo, []);
       periodoMap.get(periodo)!.push(entry);
     }
 
-    // === Ramos pendientes ===
     const cursadosSet = new Set(avance.map((a) => a.course));
     const pendientesPorNivel = new Map<number, ProyeccionRamo[]>();
 
@@ -83,7 +76,7 @@ export class ProjectionService {
           nivel: def.nivel,
           prerequisitos: def.prereq
             ? def.prereq.split(',').map((p) => p.trim())
-            : [], // ✅ También en pendientes
+            : [],
         };
 
         if (!pendientesPorNivel.has(def.nivel))
@@ -92,15 +85,13 @@ export class ProjectionService {
       }
     }
 
-    // === Ordenar los ramos dentro de cada semestre ===
-    for (const [periodo, ramos] of periodoMap) {
+    for (const [periodo, ramos] of periodoMap) { // para ordenar los ramos dentro de los semestres
       ramos.sort(
         (a, b) => a.nivel - b.nivel || a.nombre.localeCompare(b.nombre),
       );
       periodoMap.set(periodo, ramos);
     }
 
-    // === Construir respuesta final ===
     const semestres: ProyeccionSemestre[] = Array.from(periodoMap.entries())
       .sort(([pa], [pb]) => sortPeriodoAsc(pa, pb))
       .map(([periodo, ramos]) => ({ periodo, ramos }));

@@ -1,4 +1,3 @@
-// src/projection/utils/scheduler.ts
 import {
   NormalizedBase,
   RawProjectionResponse,
@@ -9,7 +8,6 @@ import {
 
 const MAX_CREDITOS_POR_SEMESTRE = 30;
 
-// ---------- helpers de periodo ----------
 function comparePeriodo(a: string, b: string): number {
   const [ya, ta] = a.split('-').map((n) => parseInt(n, 10));
   const [yb, tb] = b.split('-').map((n) => parseInt(n, 10));
@@ -18,7 +16,6 @@ function comparePeriodo(a: string, b: string): number {
 }
 
 function nextPeriodo(periodo: string): string {
-  // "YYYY-1" -> "YYYY-2" -> "YYYY-15" -> (YYYY+1)-1
   const [yStr, tStr] = periodo.split('-');
   let y = parseInt(yStr, 10);
   const t = parseInt(tStr, 10);
@@ -28,16 +25,11 @@ function nextPeriodo(periodo: string): string {
   return `${y}-2`;
 }
 
-// ¿es invierno?
 function isInvierno(periodo: string): boolean {
   const t = parseInt(periodo.split('-')[1] || '1', 10);
   return t === 15;
 }
 
-/**
- * Avance de periodo para PROYECCIÓN (saltando invierno):
- * 1 -> 2, 2 -> (y+1)-1, 15 -> 2
- */
 function nextPeriodoForProjection(periodo: string): string {
   const [yStr, tStr] = periodo.split('-');
   const y = parseInt(yStr, 10);
@@ -65,7 +57,6 @@ function detectPeriodoActual(semestres: SemestreHistorial[]): string {
   return maxP;
 }
 
-// ---------- normalización ----------
 function isAvanceEstado(x: any): x is AvanceEstado {
   return x === 'APROBADO' || x === 'REPROBADO' || x === 'INSCRITO';
 }
@@ -126,8 +117,6 @@ function normalizeHistorial(
   };
 }
 
-// ---------- grafos y heurísticas ----------
-// ⚠️ PARCHE: filtrar aprobados/inscritos desde pendientes
 function buildGraphs(base: NormalizedBase & RawProjectionResponse) {
   const pendientesIndex: Record<string, Ramo> = {};
   for (const grupo of base.pendientes) {
@@ -174,10 +163,6 @@ function buildGraphs(base: NormalizedBase & RawProjectionResponse) {
   };
 }
 
-/**
- * Regla: sólo bloquean los prereqs que existen en malla (pendientesIndex) y no están aprobados.
- * Los prereqs “fantasma” se ignoran. No permitimos co-requisitos en el mismo semestre.
- */
 function canTake(
   ramo: Ramo,
   aprobadosSet: Set<string>,
@@ -190,14 +175,9 @@ function canTake(
   for (const req of reqs) {
     const existeEnMalla = pendientesIndex ? !!pendientesIndex[req] : true;
     if (!existeEnMalla) continue;
-
-    // 👇 si el prereq no está aprobado todavía, no puede tomarse
     if (!aprobadosSet.has(req)) return false;
-
-    // 👇 adicional: no permitir co-requisitos (prereqs en el mismo semestre)
     if (tomadosEsteSemestre.some((r) => r.codigo === req)) return false;
   }
-
   return true;
 }
 
@@ -225,7 +205,6 @@ function computeUnlockScores(
   return score;
 }
 
-// ---------- exports ----------
 export {
   MAX_CREDITOS_POR_SEMESTRE,
   comparePeriodo,
@@ -238,3 +217,4 @@ export {
   canTake,
   computeUnlockScores,
 };
+
