@@ -34,7 +34,7 @@ export const useValidaciones = ({
     return nivel % 2 === 1 ? 1 : 2;
   };
 
-  const getNivelBase = (periodoActual: string): number => {
+  const getNivelBase = (periodoActual: string, semestresToCheck?: ProyectadoSemestre[]): number => {
     if (!mallaData) return 1;
 
     const cursosCompletados = new Set<string>();
@@ -46,7 +46,8 @@ export const useValidaciones = ({
       }
     }
 
-    const semestresOrdenados = [...semestresProyectados].sort((a, b) => {
+    const semestresAUsar = semestresToCheck || semestresProyectados;
+    const semestresOrdenados = [...semestresAUsar].sort((a, b) => {
       const [aYear, aTerm] = a.periodo.split("-").map(Number);
       const [bYear, bTerm] = b.periodo.split("-").map(Number);
       if (aYear !== bYear) return aYear - bYear;
@@ -96,7 +97,8 @@ export const useValidaciones = ({
   const canEnrollInSemester = (
     curso: MallaItem,
     periodo: string,
-    cursosDelSemestre: MallaItem[]
+    cursosDelSemestre: MallaItem[],
+    semestresToCheck?: ProyectadoSemestre[]
   ): { valid: boolean; reason?: string } => {
     if (tieneNumeroRomano(curso.asignatura)) {
       const [, term] = periodo.split("-");
@@ -118,7 +120,8 @@ export const useValidaciones = ({
         .filter((p) => p);
       const prerequisitosFaltantes: string[] = [];
 
-      const semestresOrdenados = [...semestresProyectados].sort((a, b) => {
+      const semestresAUsar = semestresToCheck || semestresProyectados;
+      const semestresOrdenados = [...semestresAUsar].sort((a, b) => {
         const [aYear, aTerm] = a.periodo.split("-").map(Number);
         const [bYear, bTerm] = b.periodo.split("-").map(Number);
         if (aYear !== bYear) return aYear - bYear;
@@ -160,7 +163,7 @@ export const useValidaciones = ({
       }
     }
 
-    const nivelBase = getNivelBase(periodo);
+    const nivelBase = getNivelBase(periodo, semestresToCheck);
     const DESPLAZAMIENTO = 2;
     const NIVEL_MAX_PERMITIDO = nivelBase + DESPLAZAMIENTO;
 
@@ -231,7 +234,8 @@ export const useValidaciones = ({
         const validation = canEnrollInSemester(
           curso,
           semestre.periodo,
-          semestre.cursos.filter((c) => c.codigo !== curso.codigo)
+          semestre.cursos.filter((c) => c.codigo !== curso.codigo),
+          semestresAValidar
         );
 
         if (!validation.valid && validation.reason) {

@@ -58,11 +58,13 @@ export default function MisProyecciones() {
   const [lastDeletedCourse, setLastDeletedCourse] = useState<{
     curso: MallaItem;
     semestreId: string;
+    indiceOriginal: number;
   } | null>(null);
 
   const [pendingRestore, setPendingRestore] = useState<{
     curso: MallaItem;
     semestreId: string;
+    indiceOriginal: number;
   } | null>(null);
 
   const justRestoredRef = useRef(false);
@@ -158,6 +160,7 @@ export default function MisProyecciones() {
         setPendingRestore({
           curso: lastDeletedCourse.curso,
           semestreId: lastDeletedCourse.semestreId,
+          indiceOriginal: lastDeletedCourse.indiceOriginal,
         });
 
         const nuevasAdvertencias = new Set<string>();
@@ -1143,9 +1146,10 @@ export default function MisProyecciones() {
 
     const estadoAnterior = JSON.parse(JSON.stringify(semestresProyectados));
     const semestreOrigen = semestresProyectados.find((s) => s.id === semestreId);
-    const cursoEliminado = semestreOrigen?.cursos.find(
+    const indiceOriginal = semestreOrigen?.cursos.findIndex(
       (c) => c.codigo === cursoCodigo
-    );
+    ) ?? -1;
+    const cursoEliminado = indiceOriginal >= 0 ? semestreOrigen?.cursos[indiceOriginal] : undefined;
 
     const nuevosSemestres = semestresProyectados.map((semestre) => {
       if (semestre.id === semestreId) {
@@ -1158,130 +1162,81 @@ export default function MisProyecciones() {
     });
 
     setLastDeletedState(estadoAnterior);
-    if (cursoEliminado) {
+    if (cursoEliminado && indiceOriginal >= 0) {
       setLastDeletedCourse({
         curso: cursoEliminado,
         semestreId: semestreId,
+        indiceOriginal: indiceOriginal,
       });
     }
     setSemestresProyectados(nuevosSemestres);
     guardarEnSessionStorage(nuevosSemestres);
 
-    setTimeout(() => {
-      const semestresOrdenados = [...nuevosSemestres].sort((a, b) => {
-        const [aYear, aTerm] = a.periodo.split("-").map(Number);
-        const [bYear, bTerm] = b.periodo.split("-").map(Number);
-        if (aYear !== bYear) return aYear - bYear;
-        return aTerm - bTerm;
-      });
+    if (cursoEliminado && indiceOriginal >= 0) {
+      setTimeout(() => {
+        setSemestresProyectados((currentSemestres) => {
+          const validation = validateAllProjection(currentSemestres);
+          
+          if (!validation.valid && validation.violations.length > 0) {
+            const cursosAfectados = validation.violations.map(
+              (v) => `${v.curso.codigo} (${v.curso.asignatura})`
+            );
+            const listaCursos =
+              cursosAfectados.length === 1
+                ? cursosAfectados[0]
+                : cursosAfectados.length === 2
+                ? `${cursosAfectados[0]} ni ${cursosAfectados[1]}`
+                : `${cursosAfectados.slice(0, -1).join(", ")}, ni ${cursosAfectados[cursosAfectados.length - 1]}`;
 
-      const violations: Array<{
-        curso: MallaItem;
-        semestre: string;
-        reason: string;
-      }> = [];
+            showNotification(
+              `No se puede eliminar ${cursoEliminado.codigo} (${cursoEliminado.asignatura}): ${listaCursos} depende de este curso.`,
+              "warning"
+            );
 
-      for (const semestre of semestresOrdenados) {
-        for (const curso of semestre.cursos) {
-          const validation = canEnrollInSemester(
-            curso,
-            semestre.periodo,
-            semestre.cursos.filter((c) => c.codigo !== curso.codigo)
-          );
-
-          if (!validation.valid && validation.reason) {
-            violations.push({
-              curso,
-              semestre: semestre.periodo,
-              reason: validation.reason,
+            const nuevasAdvertencias = new Set<string>();
+            validation.violations.forEach((violation) => {
+              const semestreConViolacion = currentSemestres.find(
+                (s) => s.periodo === violation.semestre
+              );
+              if (semestreConViolacion) {
+                const advertenciaKey = `${semestreConViolacion.id}-${violation.curso.codigo}`;
+                nuevasAdvertencias.add(advertenciaKey);
+              }
             });
-          }
-        }
-      }
+            setCursosConAdvertencia(nuevasAdvertencias);
 
-      if (violations.length > 0 && cursoEliminado && semestreId) {
-        const primeraViolacion = violations[0];
-        showNotification(
-          `No se puede eliminar ${cursoEliminado.codigo} (${cursoEliminado.asignatura}): ${primeraViolacion.curso.codigo} (${primeraViolacion.curso.asignatura}) en ${formatPeriodo(primeraViolacion.semestre)} depende de este curso.${violations.length > 1 ? ` (y ${violations.length - 1} más)` : ""}`,
-          "warning"
-        );
+            const semestresConCursoRestaurado = currentSemestres.map((semestre) => {
+              if (semestre.id === semestreId) {
+                const cursoYaExiste = semestre.cursos.some(
+                  (c) => c.codigo === cursoEliminado.codigo
+                );
+                if (!cursoYaExiste) {
+                  const nuevosCursos = [...semestre.cursos];
+                  nuevosCursos.splice(indiceOriginal, 0, cursoEliminado);
+                  return {
+                    ...semestre,
+                    cursos: nuevosCursos,
+                  };
+                }
+              }
+              return semestre;
+            });
 
-        const advertenciasTemporales = new Set<string>();
-        violations.forEach((violation) => {
-          const semestreConViolacion = nuevosSemestres.find(
-            (s) => s.periodo === violation.semestre
-          );
-          if (semestreConViolacion) {
-            const advertenciaKey = `${semestreConViolacion.id}-${violation.curso.codigo}`;
-            advertenciasTemporales.add(advertenciaKey);
+            guardarEnSessionStorage(semestresConCursoRestaurado);
+            setPendingRestore(null);
+            setLastDeletedCourse(null);
+            
+            return semestresConCursoRestaurado;
+          } else {
+            setPendingRestore(null);
+            setLastDeletedCourse(null);
+            setCursosConAdvertencia(new Set<string>());
           }
+          
+          return currentSemestres;
         });
-        setCursosConAdvertencia(advertenciasTemporales);
-
-        const semestresConCursoRestaurado = nuevosSemestres.map((semestre) => {
-          if (semestre.id === semestreId) {
-            const cursoYaExiste = semestre.cursos.some(
-              (c) => c.codigo === cursoEliminado.codigo
-            );
-            if (!cursoYaExiste) {
-              return {
-                ...semestre,
-                cursos: [...semestre.cursos, cursoEliminado],
-              };
-            }
-          }
-          return semestre;
-        });
-        setSemestresProyectados(semestresConCursoRestaurado);
-        guardarEnSessionStorage(semestresConCursoRestaurado);
-
-        const semestresOrdenados = [...semestresConCursoRestaurado].sort((a, b) => {
-          const [aYear, aTerm] = a.periodo.split("-").map(Number);
-          const [bYear, bTerm] = b.periodo.split("-").map(Number);
-          if (aYear !== bYear) return aYear - bYear;
-          return aTerm - bTerm;
-        });
-
-        const violationsAfterRestore: Array<{
-          curso: MallaItem;
-          semestre: string;
-          reason: string;
-        }> = [];
-
-        for (const semestre of semestresOrdenados) {
-          for (const curso of semestre.cursos) {
-            const validationResult = canEnrollInSemester(
-              curso,
-              semestre.periodo,
-              semestre.cursos.filter((c) => c.codigo !== curso.codigo)
-            );
-
-            if (!validationResult.valid && validationResult.reason) {
-              violationsAfterRestore.push({
-                curso,
-                semestre: semestre.periodo,
-                reason: validationResult.reason,
-              });
-            }
-          }
-        }
-
-        const advertenciasFinales = new Set<string>();
-        violationsAfterRestore.forEach((violation) => {
-          const semestreConViolacion = semestresConCursoRestaurado.find(
-            (s) => s.periodo === violation.semestre
-          );
-          if (semestreConViolacion) {
-            const advertenciaKey = `${semestreConViolacion.id}-${violation.curso.codigo}`;
-            advertenciasFinales.add(advertenciaKey);
-          }
-        });
-        setCursosConAdvertencia(advertenciasFinales);
-      } else {
-        setLastDeletedCourse(null);
-        setPendingRestore(null);
-      }
-    }, 100);
+      }, 100);
+    }
   };
 
 
@@ -1440,6 +1395,13 @@ export default function MisProyecciones() {
           <AddSemesterButton
             proyeccionActivaId={proyeccionActivaId}
             onAddSemester={handleAddSemester}
+            tieneCapstoneProject={semestresProyectados.some((semestre) =>
+              semestre.cursos.some(
+                (curso) =>
+                  curso.codigo === "ECIN-01000" ||
+                  curso.asignatura?.toLowerCase().includes("capstone project")
+              )
+            )}
           />
         </div>
       </div>

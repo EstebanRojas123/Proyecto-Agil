@@ -5,13 +5,15 @@ import styles from "./MisProyecciones.module.css";
 interface AddSemesterButtonProps {
   proyeccionActivaId: string | null;
   onAddSemester: () => void;
+  tieneCapstoneProject: boolean;
 }
 
 export default function AddSemesterButton({
   proyeccionActivaId,
   onAddSemester,
+  tieneCapstoneProject,
 }: AddSemesterButtonProps) {
-  if (!proyeccionActivaId) return null;
+  if (!proyeccionActivaId || tieneCapstoneProject) return null;
 
   return (
     <div className={styles.addSemesterColumn}>
@@ -21,7 +23,7 @@ export default function AddSemesterButton({
         title="Añadir semestre"
       >
         <div className={styles.addSemesterIcon}>+</div>
-        <div className={styles.addSemesterText}>AÑADIR SEMESTRE</div>
+        <div className={styles.addSemesterText}>AÑADIR $EMESTRE</div>
       </button>
     </div>
   );
