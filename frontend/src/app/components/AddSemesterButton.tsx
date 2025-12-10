@@ -23,7 +23,7 @@ export default function AddSemesterButton({
         title="Añadir semestre"
       >
         <div className={styles.addSemesterIcon}>+</div>
-        <div className={styles.addSemesterText}>AÑADIR $EMESTRE</div>
+        <div className={styles.addSemesterText}>AÑADIR SEMESTRE</div>
       </button>
     </div>
   );
