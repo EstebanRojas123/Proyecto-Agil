@@ -1,14 +1,16 @@
 # Proyecto Ágil - Backend Nestjs - Frontend Nextjs
 
-## Configuración con Docker (Recomendado para facilitar instalación de dependencias)
+## Configuración con Docker
 
-Esta configuración permite trabajar en el proyecto sin instalar Node.js, NestJS, Next.js u otras dependencias localmente.
+Las dependencias se instalan dentro de los contenedores Docker. No necesitas instalar Node.js localmente.
 
 ### Prerrequisitos
 
-- Tener [Docker](https://www.docker.com/get-started) instalado
+- Tener [Docker Desktop](https://www.docker.com/get-started) instalado y ejecutándose
 
-### Inicio rápido con Docker
+### Configuración Inicial
+
+Pasos para la primera vez que descargas el proyecto:
 
 1. **Clonar el repositorio:**
 ```bash
@@ -16,16 +18,49 @@ git clone <tu-repositorio>
 cd Proyecto-Agil
 ```
 
-2. **Levantar todos los servicios:**
-```bash
-docker compose up -d
+2. **Configurar variables de entorno:**
 
+Copia los archivos de ejemplo a archivos de configuración:
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 ```
 
-3. **Verificar que todo esté funcionando:**
+Los archivos `.env` son obligatorios. Si no existen, los servicios no funcionarán correctamente.
+
+3. **Construir e iniciar todos los servicios:**
+```bash
+docker compose build
+docker compose up -d
+```
+
+4. **Verificar que todo esté funcionando:**
 - Frontend: http://localhost:3001
 - Backend API: http://localhost:3000
 - PgAdmin: http://localhost:8080
+
+Espera 30-60 segundos después de `docker compose up -d` para que todos los servicios terminen de iniciar.
+
+### Uso Diario
+
+Una vez configurado, solo necesitas:
+
+```bash
+# Iniciar servicios (si están detenidos)
+docker compose up -d
+
+# Ver logs en tiempo real
+docker compose logs -f
+
+# Detener servicios
+docker compose down
+```
+
+Si modificas `package.json` o `package-lock.json`, reconstruye las imágenes:
+```bash
+docker compose build --no-cache
+docker compose up -d
+```
 
 ### Servicios incluidos
 
@@ -34,27 +69,34 @@ docker compose up -d
 - **Base de datos PostgreSQL**: Puerto 5432
 - **PgAdmin**: Puerto 8080
 
-### Comandos útiles de Docker
+### Comandos Útiles de Docker
 
 ```bash
 # Ver logs de todos los servicios
-docker-compose logs -f
+docker compose logs -f
 
 # Ver logs de un servicio específico
-docker-compose logs -f backend
-docker-compose logs -f frontend
+docker compose logs -f backend
+docker compose logs -f frontend
 
-# Reiniciar un servicio
-docker-compose restart backend
+# Reiniciar un servicio específico
+docker compose restart backend
+docker compose restart frontend
 
 # Detener todos los servicios
-docker-compose down
+docker compose down
 
 # Detener y eliminar volúmenes (¡CUIDADO! Elimina datos de BD)
-docker-compose down -v
+docker compose down -v
 
-# Reconstruir imágenes
-docker-compose build --no-cache
+# Reconstruir imágenes (si cambias package.json o hay errores)
+docker compose build --no-cache
+
+# Reconstruir y levantar servicios en un solo comando
+docker compose up -d --build
+
+# Ver estado de los contenedores
+docker compose ps
 ```
 
 ### Configuración de Base de Datos
@@ -71,54 +113,67 @@ Para acceder a PgAdmin:
 - **Username:** `nestuser`
 - **Password:** `12345`
 
-### Desarrollo con Docker
+### Hot Reload y Desarrollo
 
-Los volúmenes están configurados para hot-reload:
-- Los cambios en el código se reflejan automáticamente
+Los volúmenes están configurados para desarrollo con hot-reload:
+- Los cambios en el código se reflejan automáticamente (no necesitas reiniciar)
+- Los `node_modules` se mantienen en el contenedor
 - No necesitas reconstruir las imágenes constantemente
-- Los `node_modules` se mantienen en el contenedor para mejor rendimiento
+- Puedes editar código directamente desde tu editor local
 
-### Variables de entorno
+---
 
-Copia los archivos de ejemplo y personaliza según necesites:
+## Configuración Manual (Sin Docker)
+
+Si prefieres ejecutar el proyecto localmente sin Docker, necesitas:
+
+### Prerrequisitos Manuales
+
+- Node.js 18+ instalado
+- npm o yarn instalado
+- PostgreSQL ejecutándose (o usar Docker solo para la BD)
+
+### Pasos de Instalación Manual
+
+1. **Configurar variables de entorno:**
 ```bash
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 ```
 
-## 🔧 Configuración Manual (Alternativa)
-
-Si prefieres instalar las dependencias localmente:
-
-### Instalar dependencias
-
+2. **Instalar dependencias (OBLIGATORIO):**
 ```bash
 # Backend
 cd backend
 npm install
+cd ..
 
 # Frontend
-cd ../frontend
+cd frontend
 npm install
+cd ..
 ```
 
-### Levantar solo la base de datos
-
+3. **Levantar base de datos (con Docker):**
 ```bash
-docker-compose up -d db pgadmin
+docker compose up -d db pgadmin
 ```
 
-### Ejecutar aplicaciones localmente
-
+4. **Ejecutar aplicaciones:**
 ```bash
-# Backend
+# Terminal 1 - Backend
 cd backend
 npm run start:dev
 
-# Frontend (en otra terminal)
+# Terminal 2 - Frontend
 cd frontend
 npm run dev
 ```
+
+Problemas comunes:
+- Error "Module not found": No ejecutaste `npm install`
+- Error de conexión a BD: Verifica que PostgreSQL esté corriendo
+- Puerto ocupado: Cambia los puertos en los archivos `.env`
 
 ## Testing
 
@@ -295,6 +350,39 @@ Si intentas realizar una acción que viole estas reglas, recibirás una notifica
 - **Organiza por niveles**: Agrupa cursos del mismo nivel para mantener una progresión lógica
 
 ### Solución de Problemas
+
+**Error: "Module not found: Can't resolve 'axios'" o errores similares:**
+
+Si usas Docker:
+- Las dependencias no se instalaron correctamente en el contenedor
+- Solución:
+  ```bash
+  docker compose down
+  docker compose build --no-cache
+  docker compose up -d
+  ```
+- Para reconstruir solo el frontend:
+  ```bash
+  docker compose build --no-cache frontend
+  docker compose up -d frontend
+  ```
+
+Si ejecutas localmente (sin Docker):
+- No ejecutaste `npm install`
+- Solución:
+  ```bash
+  cd backend && npm install && cd ..
+  cd frontend && npm install
+  ```
+
+**Error: "Cannot find module" o errores de importación:**
+- Verifica que los archivos `.env` existan (copia desde `.env.example`)
+- Reconstruye las imágenes: `docker compose build --no-cache`
+
+**Los servicios no inician o se detienen:**
+- Verifica que Docker Desktop esté ejecutándose
+- Revisa los logs: `docker compose logs`
+- Verifica que los puertos 3000, 3001, 5432, 8080 no estén ocupados
 
 **No puedo iniciar sesión:**
 - Verifica que tus credenciales sean correctas

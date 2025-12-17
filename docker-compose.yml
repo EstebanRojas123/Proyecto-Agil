@@ -1,6 +1,4 @@
 # Docker Compose para desarrollo con hot-reload optimizado
-version: "3.9"
-
 services:
   # Base de datos PostgreSQL
   db:
